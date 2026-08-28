@@ -253,7 +253,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .desk-brand{ font-size:13px; font-weight:800; letter-spacing:.06em; color:var(--text) }
   .desk-count{ font-size:12.5px; color:var(--muted); margin-left:auto }
   .desk-count b{ color:var(--accent); font-size:15px }
-  .desk-sections{ max-width:720px; margin:0 auto; padding:22px 20px 40px; display:flex; flex-direction:column; gap:26px }
+  .desk-sections{ max-width:none; margin:0; padding:22px 24px 40px; display:flex; flex-direction:column; gap:26px }
   .desk-section{ scroll-margin-top:70px }
   .desk-section .section-card{ padding:24px 26px }
   .desk-actions{ position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 20px; background:linear-gradient(rgba(253,252,250,0), rgba(253,252,250,.97) 45%); z-index:20 }
@@ -263,7 +263,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 
 /* Right: live "form filling itself" panel — appears once there's room (≥1170) */
 @media (min-width:1170px){
-  .app.is-desktop{ grid-template-columns:220px minmax(0,1fr) 260px }
+  .app.is-desktop{ grid-template-columns:230px minmax(0,1fr) 290px }
   .app.is-desktop .desk-preview{ display:flex; flex-direction:column; padding:22px 18px; box-sizing:border-box; position:sticky; top:0; height:100dvh; overflow:auto }
   .desk-form{ border-right:0 }
   .desk-preview-title{ font-size:15px; font-weight:800 }
@@ -280,19 +280,26 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .desk-preview-review .btn{ margin-top:10px }
 }
 
-/* Mid/large monitors: center the doc, roomier rail */
-@media (min-width:1460px){
-  .app.is-desktop{ grid-template-columns:240px minmax(0,760px) 300px; justify-content:center }
+/* Wide monitors: the form fills the width — questions pack into two columns
+   inside each section card, like a real clinic form, no dead gutters */
+@media (min-width:1420px){
+  .app.is-desktop{ grid-template-columns:250px minmax(0,1fr) 320px }
   .rail{ border-right:0 }
+  .desk-section .section-card{ columns:2; column-gap:38px }
+  .desk-section .section-head{ column-span:all }
+  .desk-section .q-block{ break-inside:avoid }
 }
 
-/* Very large / UHD: let the doc breathe and scale up type */
+/* Very large / UHD: let the doc scale up and get a third column */
 @media (min-width:1800px){
-  .app.is-desktop{ grid-template-columns:260px minmax(0,880px) 320px }
-  .desk-sections{ max-width:840px }
+  .app.is-desktop{ grid-template-columns:280px minmax(0,1fr) 380px }
   .desk-section .section-card{ padding:30px 34px }
   .section-title{ font-size:22px }
   .q-title{ font-size:17px }
+}
+@media (min-width:2400px){
+  .app.is-desktop{ grid-template-columns:300px minmax(0,1fr) 420px }
+  .desk-section .section-card{ columns:3; column-gap:42px }
 }
 @media print{
   .progress-wrap, .step-header, .footer, .btn, .sheet-backdrop, .welcome-hinglish, .welcome-meta{ display:none !important }
