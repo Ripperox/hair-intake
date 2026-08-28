@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Answers } from './schema'
+import { normalizeAnswers, EMPTY_ANSWERS, PRODUCT_ROW_KEYS, PROCEDURE_ROW_KEYS } from './schema'
 import type { StepId } from './intake-steps'
 import {
   getStepIndex,
@@ -30,44 +31,7 @@ import {
 
 // deep clone initial answers (avoid shared nested refs)
 function freshAnswers(): Answers {
-  return JSON.parse(JSON.stringify({
-    ageHairLossBegan: '',
-    duration: null,
-    familyHistory: [],
-    pattern: [],
-    diagnosedConditions: [],
-    menstrualCycle: null,
-    pregnancyRelated: null,
-    adultAcneOilySkin: null,
-    excessBodyFacialHair: null,
-    past6Months: [],
-    smoking: null,
-    smokingSeverity: null,
-    alcohol: null,
-    hardWater: null,
-    hairWashFrequency: null,
-    heatingTools: null,
-    salonTreatments: null,
-    salonTreatmentDetail: null,
-    products: {
-      'OTC/Medicated Shampoos': { used: false, duration: null, helped: null, sideEffects: null },
-      'Hair Oils/Serums': { used: false, duration: null, helped: null, sideEffects: null },
-      'Topical Minoxidil': { used: false, duration: null, helped: null, sideEffects: null },
-      'Oral Minoxidil': { used: false, duration: null, helped: null, sideEffects: null },
-      'Supplements': { used: false, duration: null, helped: null, sideEffects: null },
-    },
-    procedures: {
-      'PRP/GFC/iPRF': { done: false, sessions: null, helped: null },
-      'Stem Cells/Exosomes': { done: false, sessions: null, helped: null },
-      'Hair Transplant': { done: false, sessions: null, helped: null },
-      'Other': { done: false, sessions: null, helped: null },
-    },
-    pastTreatmentSideEffects: null,
-    pastTreatmentDescribe: null,
-    sampleType: null,
-    consent: null,
-    sex: null,
-  }))
+  return JSON.parse(JSON.stringify(EMPTY_ANSWERS))
 }
 
 export default function App() {
@@ -80,10 +44,10 @@ export default function App() {
         const parsed = JSON.parse(raw)
         // support both legacy bare object and new {ts, answers} shape
         if (parsed && typeof parsed === 'object' && 'answers' in parsed && 'ts' in parsed) {
-          if (Date.now() - parsed.ts < STORAGE_TTL_MS) return parsed.answers as Answers
+          if (Date.now() - parsed.ts < STORAGE_TTL_MS) return normalizeAnswers(parsed.answers)
           localStorage.removeItem(STORAGE_KEY)
         } else if (parsed && typeof parsed === 'object' && 'ageHairLossBegan' in parsed) {
-          return parsed as Answers
+          return normalizeAnswers(parsed)
         }
       }
     } catch {}
@@ -408,7 +372,7 @@ export default function App() {
       }
 
       case 'q12': {
-        const rows = ['OTC/Medicated Shampoos','Hair Oils/Serums','Topical Minoxidil','Oral Minoxidil','Supplements'] as const
+        const rows = [...PRODUCT_ROW_KEYS]
         const anyUsed = Object.values(answers.products).some(v=>v.used)
         return (
           <SectionCard title="Products you&apos;ve tried" subtitle="Tap Used only where needed — everything else stays collapsed.">
@@ -450,7 +414,7 @@ export default function App() {
       }
 
       case 'q13': {
-        const rows = ['PRP/GFC/iPRF','Stem Cells/Exosomes','Hair Transplant','Other'] as const
+        const rows = [...PROCEDURE_ROW_KEYS]
         const anyDone = Object.values(answers.procedures).some(v=>v.done)
         return (
           <SectionCard title="In-clinic procedures" subtitle="Tap Done only where applicable — rest stay collapsed.">
