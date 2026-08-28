@@ -189,6 +189,40 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 @media (prefers-reduced-motion: reduce){
   *{ animation:none !important; transition:none !important; scroll-behavior:auto !important }
   .progress-bar{ transition:none }
+  .voice-btn.listening{ animation:none }
+}
+
+/* Voice (speech assistant) */
+.voiced-wrap{ display:flex; flex-direction:column; gap:10px }
+.voiced-bar{ display:flex; align-items:center; gap:12px; min-height:44px; flex-wrap:wrap }
+.voice-btn{ display:inline-flex; align-items:center; gap:8px; padding:11px 16px; border-radius:999px; border:1.5px solid var(--accent-line); background:var(--accent-soft); color:var(--accent); font-size:14px; font-weight:700; cursor:pointer }
+.voice-btn:hover{ background:white }
+.voice-btn.listening{ background:var(--accent); color:white; animation:voice-pulse 1.4s ease infinite }
+@keyframes voice-pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(26,107,84,.35) } 50%{ box-shadow:0 0 0 10px rgba(26,107,84,0) } }
+.voiced-note{ font-size:12.5px; color:var(--muted); line-height:1.4 }
+.voiced-note.listening{ color:var(--accent); font-weight:600 }
+
+/* Desktop rail — separate laptop experience, no one-size-fits-all */
+.rail{ display:none }
+@media (min-width:1024px){
+  .app.is-desktop{ max-width:1180px; flex-direction:row; gap:44px; padding:28px 32px; align-items:flex-start }
+  .app.is-desktop .desktop-body{ flex:1; max-width:640px; min-width:0 }
+  .rail{ display:block; width:280px; flex:none; position:sticky; top:28px; max-height:calc(100dvh - 56px); overflow:auto; padding-right:8px }
+  .rail-title{ font-size:16px; font-weight:800; color:var(--text); margin-bottom:2px }
+  .rail-sub{ font-size:12.5px; color:var(--muted); margin:0 0 18px; line-height:1.45 }
+  .rail-group{ display:flex; gap:12px; margin-bottom:16px }
+  .rail-letter{ width:26px; height:26px; border-radius:9px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:800; display:grid; place-items:center; flex:none; margin-top:2px }
+  .rail-items{ display:flex; flex-direction:column; gap:2px; flex:1 }
+  .rail-item{ appearance:none; text-align:left; border:0; background:transparent; padding:7px 10px; border-radius:10px; font-size:13.5px; font-weight:600; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:10px }
+  .rail-item:hover{ background:var(--bg-soft) }
+  .rail-item.current{ background:var(--accent-soft); color:var(--accent) }
+  .rail-item.done{ color:var(--text) }
+  .rail-dot{ width:8px; height:8px; border-radius:999px; background:var(--line-strong); flex:none }
+  .rail-item.done .rail-dot{ background:var(--accent) }
+  .rail-item.current .rail-dot{ background:var(--accent); box-shadow:0 0 0 3px rgba(26,107,84,.2) }
+  .rail-keys{ font-size:12px; color:var(--muted); border-top:1px solid var(--line); padding-top:14px; margin-top:6px }
+  .section-card{ padding:26px }
+  .btn-big{ font-size:15.5px }
 }
 @media print{
   .progress-wrap, .step-header, .footer, .btn, .sheet-backdrop, .welcome-hinglish, .welcome-meta{ display:none !important }

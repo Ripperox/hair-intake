@@ -34,6 +34,9 @@ No env vars. No API keys in repo. Works offline after load.
 | **Vite + React** | Bought (off-the-shelf) | Fastest to a polished, deployable build. Typed schema → typed UI → typed JSON output in one codebase. No need for Django/DRF for a patient-facing step flow; a frontend-leaning hire should bias to where taste shows. |
 | **Progress & conditional steps** | Built (`intake-steps.ts`) | Female-only Q6/Q7 appear only if sex=female — otherwise skipped. Weight-aware progress so tables don't jump the bar. This is the "infer and just confirm" taste the brief asks for. |
 | **Per-question input** | Built (`intake-components.tsx`) | Number stepper (age), single cards (duration/sample), multi chips with exclusive "None" (family/conditions), Yes/No, table-as-cards (habits/products/procedures). Each question gets the lightest control that answers it — not one chat box for everything. |
+| **Speech, only where speech wins** | Built, Web Speech API | The two questions that are naturally spoken (describe salon treatments, describe side effects) get a Speak button → transcript → field. Client-side, free, Hinglish-tolerant (`en-IN`), no key. Advisably, "some are speech" — the tap questions stay taps. Voice notes: iOS Safari lacks recognition, so it degrades to a hint + typing. |
+| **Inference → just confirm (Q4)** | Built, deterministic rule | If hair loss started ≤25 and the father had the same, we pre-mark "receding hairline / crown thinning" as chips with a "we pre-marked these — tap to remove" note. Inferred from earlier answers, always confirmed, never assumed. |
+| **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one tap at a time, thumb-sized, talk-to-fill. Laptop ≥1024px: sticky section rail (A–E) to jump/review, arrow-key navigation + Enter to confirm, wider breathing room. Same state engine, two genuinely different layouts. |
 | **Sex question design** | Built, first after welcome | Asked once, warmly: "Some questions differ for women…" with Male/Female/Prefer not to say + Skip. Female-only questions then gated. Asking once is more respectful than inferring or repeating. |
 | **Styling** | Built, no UI library | Clinic-grade palette (warm paper + deep forest), 52px tap targets, high contrast. No shadcn churn; keeps bundle small and feel precise. |
 | **Deploy** | Vercel static | One command, works without install — matches submission rule. |
@@ -53,10 +56,10 @@ No env vars. No API keys in repo. Works offline after load.
 
 ## What I'd do with one more week
 
-1. **Voice as an *optional* assist, not a mode** — Web Speech API per field (tap the mic next to Age or Describe) with Hinglish-tuned hints, plus a server whisper fallback for low-end Android. The current build skips voice deliberately to stay finished; a week lets it be additive.
-2. **Clinic handoff polish** — generate a one-page doctor summary (red flags, hormonal signals, treatment history) alongside the raw JSON, plus a WhatsApp-share link (DermaAI's actual channel). Print stylesheet for the front desk.
+1. **Smudge-proof Hinglish + accent coverage** — the Web Speech `en-IN` transcript is solid but not perfect; a second pass with an accent-tolerant whisper fallback (serverless, env-held key) for iOS users who can't use Web Speech at all.
+2. **Clinic handoff polish** — one-page doctor summary (red flags, hormonal signals, treatment history) alongside the raw JSON, plus a WhatsApp-share link (DermaAI's actual channel). Print stylesheet for the front desk.
 3. **A11y & trust pass** — full screen-reader audit, larger font toggle, explicit DPDP consent copy, and field-level "why we ask this" explainers (e.g., "PCOS influences hair loss — your doctor uses this to choose tests").
-4. **Light inference** — e.g., if `age ≤ 22` and `familyHistory` includes father, pre-highlight "receding hairline / crown thinning" as a confirmable suggestion rather than an assumption. Always confirm, never auto-fill.
+4. **More inference** — "talk freely about your hair" preamble: speak/type three sentences, deterministic keyword extraction pre-fills chips for confirmation. Grows the "infer and just confirm" pattern to more sections.
 
 ---
 

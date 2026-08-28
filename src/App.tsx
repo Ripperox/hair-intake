@@ -1,7 +1,7 @@
 // GenoRoot — hair intake that fills itself
 // Client-only, no keys, no backend. Deploy as static build.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Answers } from './schema'
 import type { StepId } from './intake-steps'
 import {
@@ -11,14 +11,17 @@ import {
   getNextStep,
   getPrevStep,
   isFirstStep,
+  getVisibleSteps,
+  STEPS,
 } from './intake-steps'
+import { useIsDesktop } from './use-is-desktop'
 import {
   BigButton,
   OptionCard,
   ChipOption,
   YesNo,
   NumberStepper,
-  TextArea,
+  VoicedTextArea,
   ProgressBar,
   StepHeader,
   SectionCard,
@@ -88,6 +91,41 @@ export default function App() {
   })
   const [step, setStep] = useState<StepId>('welcome')
   const [showLeaveSheet, setShowLeaveSheet] = useState(false)
+  const isDesktop = useIsDesktop()
+  const patternSeeded = useRef(false)
+
+  // Q4 inference: if hair loss started young + father similar, pre-mark the most
+  // common patterns as *suggestions* – always confirmed, never assumed.
+  useEffect(() => {
+    if (step !== 'q4' || patternSeeded.current) return
+    patternSeeded.current = true
+    const age = parseInt(answers.ageHairLossBegan, 10)
+    const father = answers.familyHistory.includes('Father had hair loss')
+    if (!isNaN(age) && age <= 25 && father && answers.pattern.length === 0) {
+      setAnswers(prev => ({ ...prev, pattern: ['Receding hairline', 'Thinning at crown'] }))
+    }
+  }, [step])
+
+  // Desktop keyboard nav: arrows move, Enter confirms (skips list/yes-no buttons).
+  useEffect(() => {
+    if (!isDesktop) return
+    const onKey = (e: KeyboardEvent) => {
+      if (showLeaveSheet) return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (canContinue() && (e.key !== 'Enter' || tag !== 'BUTTON')) {
+          e.preventDefault()
+          goNext()
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goPrev()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isDesktop, step, answers, showLeaveSheet])
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ts: Date.now(), answers })) } catch {}
@@ -210,9 +248,16 @@ export default function App() {
           </SectionCard>
         )
 
-      case 'q4':
+      case 'q4': {
+        const ageN = parseInt(answers.ageHairLossBegan, 10)
+        const suggested = !isNaN(ageN) && ageN <= 25 && answers.familyHistory.includes('Father had hair loss')
         return (
           <SectionCard title="What pattern do you see?" subtitle="Select all that match you.">
+            {suggested && answers.pattern.length > 0 && (
+              <div className="field-ok" style={{ marginTop: 0, marginBottom: 12, lineHeight: 1.45 }}>
+                Based on when it started + your father&apos;s hair loss, we pre-marked the two most common patterns. Tap to remove any that don&apos;t match.
+              </div>
+            )}
             <div className="chip-grid">
               {['Receding hairline','Thinning at crown','Widening part line','Diffuse thinning','Patchy loss','Sudden excessive shedding'].map(opt => (
                 <ChipOption key={opt} label={opt} selected={answers.pattern.includes(opt)} onToggle={() => {
@@ -224,6 +269,7 @@ export default function App() {
             <BigButton onClick={goNext} disabled={!canContinue()}>Continue</BigButton>
           </SectionCard>
         )
+      }
 
       case 'q5':
         return (
@@ -350,7 +396,7 @@ export default function App() {
                 <div className="habit-main"><span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span><YesNo value={answers.salonTreatments} onChange={v => update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null })} /></div>
                 {answers.salonTreatments && (
                   <div className="habit-followup">
-                    <TextArea value={answers.salonTreatmentDetail || ''} onChange={v => update({ salonTreatmentDetail: v })} placeholder="Which ones? e.g. Keratin 2 months ago" rows={2} />
+                    <VoicedTextArea value={answers.salonTreatmentDetail || ''} onChange={v => update({ salonTreatmentDetail: v })} placeholder="Which ones? e.g. Keratin 2 months ago" rows={2} />
                   </div>
                 )}
               </div>
@@ -450,7 +496,7 @@ export default function App() {
             <YesNo value={answers.pastTreatmentSideEffects} onChange={v => update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null })} />
             {answers.pastTreatmentSideEffects && (
               <div style={{marginTop:16}}>
-                <TextArea value={answers.pastTreatmentDescribe || ''} onChange={v => update({ pastTreatmentDescribe: v })} placeholder="What happened? e.g. Itchy scalp with minoxidil" rows={3} />
+                <VoicedTextArea value={answers.pastTreatmentDescribe || ''} onChange={v => update({ pastTreatmentDescribe: v })} placeholder="What happened? e.g. Itchy scalp with minoxidil" rows={3} />
               </div>
             )}
             <div style={{marginTop:20}}>
@@ -552,34 +598,74 @@ export default function App() {
               <summary>Filled form — structured data (what the doctor sees)</summary>
               <pre>{JSON.stringify(finalForm, null, 2)}</pre>
             </details>
-            <BigButton variant="ghost" onClick={() => { setAnswers(freshAnswers()); setStep('welcome'); try{localStorage.removeItem('hair-intake-answers')}catch{} }}>Start another intake</BigButton>
+            <BigButton variant="ghost" onClick={() => { patternSeeded.current = false; setAnswers(freshAnswers()); setStep('welcome'); try{localStorage.removeItem('hair-intake-answers')}catch{} }}>Start another intake</BigButton>
           </div>
         )
       }
     }
   }
 
+  const RAIL: { letter: string; title: string; steps: StepId[] }[] = [
+    { letter: 'A', title: 'Personal & family', steps: ['q1','q2','q3','q4'] },
+    { letter: 'B', title: 'Hormonal & health', steps: ['q5','q6','q7','q8','q9'] },
+    { letter: 'C', title: 'Lifestyle', steps: ['q10','q11'] },
+    { letter: 'D', title: 'Treatments', steps: ['q12','q13','q14'] },
+    { letter: 'E', title: 'Sample & consent', steps: ['q15','q16'] },
+  ]
+  const visibleSteps = getVisibleSteps(answers)
+
   return (
-    <div className="app">
-      {step !== 'welcome' && step !== 'done' && (
-        <>
-          <ProgressBar progress={progress} />
-          <StepHeader
-            current={currentIndex}
-            total={totalSteps - 2}
-            stepId={step}
-            onBack={isFirstStep(step, answers) ? undefined : goPrev}
-            onClose={() => setShowLeaveSheet(true)}
-          />
-        </>
+    <div className={`app ${isDesktop ? 'is-desktop' : ''}`}>
+      {isDesktop && step !== 'welcome' && step !== 'done' && (
+        <aside className="rail">
+          <div className="rail-title">Your check-in</div>
+          <p className="rail-sub">Answers save as you go. Jump to any section.</p>
+          {RAIL.map(g => {
+            const steps = g.steps.filter(id => visibleSteps.includes(id))
+            if (!steps.length) return null
+            return (
+              <div className="rail-group" key={g.letter}>
+                <div className="rail-letter">{g.letter}</div>
+                <div className="rail-items">
+                  {steps.map(id => {
+                    const label = STEPS.find(s => s.id === id)?.label ?? id
+                    const idx = getStepIndex(id, answers)
+                    const cls = idx === currentIndex ? 'current' : idx < currentIndex ? 'done' : ''
+                    return (
+                      <button key={id} type="button" className={`rail-item ${cls}`} onClick={() => setStep(id)}>
+                        <span className="rail-dot" aria-hidden="true" />
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+          <div className="rail-keys">← → arrow keys move · click to jump</div>
+        </aside>
       )}
-      <main className="main">{renderStep()}</main>
-      {step !== 'welcome' && step !== 'done' && (
-        <footer className="footer">
-          <span>Step {currentIndex} of {totalSteps - 2}</span>
-          <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
-        </footer>
-      )}
+      <div className="desktop-body">
+        {step !== 'welcome' && step !== 'done' && (
+          <>
+            <ProgressBar progress={progress} />
+            <StepHeader
+              current={currentIndex}
+              total={totalSteps - 2}
+              stepId={step}
+              onBack={isFirstStep(step, answers) ? undefined : goPrev}
+              onClose={() => setShowLeaveSheet(true)}
+            />
+          </>
+        )}
+        <main className="main">{renderStep()}</main>
+        {step !== 'welcome' && step !== 'done' && (
+          <footer className="footer">
+            <span>Step {currentIndex} of {totalSteps - 2}</span>
+            <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
+          </footer>
+        )}
+      </div>
       {showLeaveSheet && (
         <div className="sheet-backdrop" onClick={()=>setShowLeaveSheet(false)}>
           <div className="sheet" role="dialog" aria-modal="true" aria-label="Leave intake?" onClick={e=>e.stopPropagation()}>

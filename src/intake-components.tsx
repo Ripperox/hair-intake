@@ -1,7 +1,7 @@
 // Input components — each one tuned to the question type.
 // Big tap targets, mobile-first, accessible.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 
 export function BigButton({
@@ -169,31 +169,88 @@ export function NumberStepper({
   )
 }
 
-export function VoiceInput({
-  listening,
-  onToggle,
-}: {
-  listening: boolean
-  onToggle: () => void
-}) {
+export function useVoice(lang = 'en-IN') {
   const [supported, setSupported] = useState(false)
+  const [listening, setListening] = useState(false)
+  const recRef = useRef<{ start: () => void; stop: () => void; abort: () => void } | null>(null)
+  const commitRef = useRef<(transcript: string) => void>(() => {})
+
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (SpeechRecognition) setSupported(true)
-  }, [])
-  if (!supported) return null
+    const w = window as any
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SR) return
+    const rec = new SR()
+    rec.continuous = true
+    rec.interimResults = true
+    rec.lang = lang
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
+    rec.onresult = (e: any) => {
+      const final: string[] = []
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final.push(e.results[i][0].transcript)
+      }
+      final.forEach(t => commitRef.current(t))
+    }
+    recRef.current = rec
+    setSupported(true)
+    return () => { try { rec.abort() } catch {} }
+  }, [lang])
+
+  const toggle = useCallback((onFinal: (t: string) => void) => {
+    const rec = recRef.current
+    if (!rec) return
+    if (listening) { try { rec.stop() } catch {} setListening(false); return }
+    commitRef.current = onFinal
+    try { rec.start(); setListening(true) } catch { setListening(false) }
+  }, [listening])
+
+  return { supported, listening, toggle }
+}
+
+export function VoicedTextArea({
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  rows?: number
+}) {
+  const { supported, listening, toggle } = useVoice()
+  const commit = useCallback((t: string) => {
+    const tx = t.trim()
+    if (!tx) return
+    onChange(value ? `${value.replace(/\s+$/, '')} ${tx}` : tx)
+  }, [value, onChange])
   return (
-    <button
-      type="button"
-      className={`voice-btn ${listening ? 'listening' : ''}`}
-      onClick={onToggle}
-      aria-label={listening ? 'Stop listening' : 'Tap to speak'}
-    >
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14.1 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.6z" fill="currentColor" />
-      </svg>
-      {listening ? 'Listening…' : 'Speak'}
-    </button>
+    <div className="voiced-wrap">
+      <TextArea value={value} onChange={onChange} placeholder={placeholder} rows={rows} />
+      <div className="voiced-bar">
+        {supported ? (
+          <button
+            type="button"
+            className={`voice-btn ${listening ? 'listening' : ''}`}
+            onClick={() => toggle(commit)}
+            aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14.1 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.6z" fill="currentColor" />
+            </svg>
+            {listening ? 'Stop' : 'Speak'}
+          </button>
+        ) : (
+          <span className="voiced-note">Voice works on Android + desktop Chrome. Here, just type it.</span>
+        )}
+        {supported && (
+          <span className={`voiced-note ${listening ? 'listening' : ''}`}>
+            {listening ? 'Listening — speak naturally, Hinglish is fine' : 'Optional — speak it instead of typing'}
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
 
