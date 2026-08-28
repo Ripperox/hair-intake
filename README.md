@@ -4,7 +4,8 @@
 
 A small web app that gets a patient through a 16-question hair-clinic intake without feeling like a form. One question at a time, big tap targets, per-question input choice, finishable by a 55-year-old on a phone. Only the filled form at the end is fixed — everything the patient sees is designed for feel.
 
-**Live:** _(add Vercel URL after deploy)_  
+**Live:** https://hair-intake.vercel.app  
+**Repo:** https://github.com/Ripperox/hair-intake  
 **Stack:** React + TypeScript + Vite — client-only, no keys, no backend.
 
 ---
