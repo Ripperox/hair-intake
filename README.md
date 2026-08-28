@@ -54,6 +54,31 @@ No env vars. No API keys in repo. Works offline after load.
 
 ---
 
+## Taste map — the 16 questions, per-question design
+
+Every question gets the control that answers it fastest. No shared default input; never one chat box.
+
+| Q | Question | Primer | Control | Why |
+|---|---|---|---|---|
+| 1 | Age hair loss began | A · Personal & family | **Typed number ± stepper** | Just "28" + Enter. Faster and more precise than a slider or cards. |
+| 2 | How long | A | **3 cards, one tap** | Auto-advances on tap. Zero thought. |
+| 3 | Family history | A | **Chips, exclusive "None"** | Pick several relatives; "No known family history" clears the rest. |
+| 4 | Pattern | A | **Chips + infer & confirm** | If onset ≤25 & father had it, the two most common patterns pre-mark with "we pre-marked these — tap to remove." Inferred, always confirmed. |
+| 5 | Diagnosed conditions | B · Hormonal & health | **Chips, exclusive "None"** | Same light multiselect; private-to-doctor copy. |
+| 6 | Menstrual cycle | B | **Cards, one tap** | Shown only for female patients — men never see it (gating). |
+| 7 | Pregnancy-related | B | **Cards, one tap** | Shown only for female patients. |
+| 8 | Acne / oily skin | B | **Yes/No, one tap** | Boolean = two big buttons, advances automatically. |
+| 9 | Excess body/facial hair | B | **Yes/No, one tap** | Boolean, advances automatically. |
+| 10 | Last-6-months triggers | C · Lifestyle | **Chips, allow-empty** | "If nothing happened, just Continue" — answering none is legitimate. |
+| 11 | Daily habits | C | **Table-as-cards + speech** | Lifestyle vs hair-care groups; sub-questions unfold only when the row is "yes"; salon treatments detail is **voice or type** (Web Speech, en-IN). |
+| 12 | Products tried | D · Treatments | **Fast-path skip** | "Never used any → skip" answers 5 rows in one tap; rows open only when marked Used. |
+| 13 | Procedures | D | **Fast-path skip** | "None done → skip" in one tap; sessions/helped expand only when Done. |
+| 14 | Side effects / poor response | D | **Yes/No + speech or type** | A 55yo says "itching and redness" aloud instead of typing it — the second voice field. |
+| 15 | Sample type | E · Sample & consent | **Cards with sub-labels** | "Saliva – no needle" / "Blood – more DNA" / "Either". One decisive tap. |
+| 16 | Consent | E | **Big checkbox card** | Deliberately the heaviest interaction in the flow — it's a legal consent. |
+
+Mechanisms at a glance: **one-tap auto-advance ×7** (2, 6, 7, 8, 9, 15, + skips), **chips ×3** (3, 5, 10), **infer & confirm ×1** (4), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **typed number ×1** (1), **consent checkbox ×1** (16).
+
 ## What I'd do with one more week
 
 1. **Smudge-proof Hinglish + accent coverage** — the Web Speech `en-IN` transcript is solid but not perfect; a second pass with an accent-tolerant whisper fallback (serverless, env-held key) for iOS users who can't use Web Speech at all.
