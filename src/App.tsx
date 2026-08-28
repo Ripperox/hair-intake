@@ -68,17 +68,29 @@ function freshAnswers(): Answers {
 }
 
 export default function App() {
+  const STORAGE_KEY = 'hair-intake-answers'
+  const STORAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000
   const [answers, setAnswers] = useState<Answers>(() => {
     try {
-      const saved = localStorage.getItem('hair-intake-answers')
-      if (saved) return JSON.parse(saved) as Answers
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        // support both legacy bare object and new {ts, answers} shape
+        if (parsed && typeof parsed === 'object' && 'answers' in parsed && 'ts' in parsed) {
+          if (Date.now() - parsed.ts < STORAGE_TTL_MS) return parsed.answers as Answers
+          localStorage.removeItem(STORAGE_KEY)
+        } else if (parsed && typeof parsed === 'object' && 'ageHairLossBegan' in parsed) {
+          return parsed as Answers
+        }
+      }
     } catch {}
     return freshAnswers()
   })
   const [step, setStep] = useState<StepId>('welcome')
+  const [showLeaveSheet, setShowLeaveSheet] = useState(false)
 
   useEffect(() => {
-    try { localStorage.setItem('hair-intake-answers', JSON.stringify(answers)) } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ts: Date.now(), answers })) } catch {}
   }, [answers])
 
   const update = useCallback((patch: Partial<Answers>) => {
@@ -145,14 +157,18 @@ export default function App() {
           </SectionCard>
         )
 
-      case 'q1':
+      case 'q1': {
+        const n = parseInt(answers.ageHairLossBegan, 10)
+        const invalid = !answers.ageHairLossBegan || isNaN(n) || n < 10 || n > 80
         return (
           <SectionCard title="When did you first notice hair loss?" subtitle="Your age when it started — best guess is fine.">
             <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={80} label="Age" />
             <Hint>Tap + / − or type the number.</Hint>
-            <BigButton onClick={goNext} disabled={!canContinue()}>Continue</BigButton>
+            {invalid ? <p className="field-error">Enter a number between 10 and 80</p> : <p className="field-ok">Looks good — tap Continue</p>}
+            <BigButton onClick={goNext} disabled={invalid}>Continue</BigButton>
           </SectionCard>
         )
+      }
 
       case 'q2':
         return (
@@ -187,6 +203,7 @@ export default function App() {
                 />
               ))}
             </div>
+            {!canContinue() && <p className="field-error">Pick at least one</p>}
             <BigButton onClick={goNext} disabled={!canContinue()}>Continue</BigButton>
           </SectionCard>
         )
@@ -201,13 +218,14 @@ export default function App() {
                 }} />
               ))}
             </div>
+            {!canContinue() && <p className="field-error">Pick at least one</p>}
             <BigButton onClick={goNext} disabled={!canContinue()}>Continue</BigButton>
           </SectionCard>
         )
 
       case 'q5':
         return (
-          <SectionCard title="Any diagnosed conditions?" subtitle="Select all that apply.">
+          <SectionCard title="Any diagnosed conditions?" subtitle="Helps your doctor decide which tests to run — not shared outside the clinic.">
             <div className="chip-grid">
               {['PCOS/PCOD','Thyroid disorder','Diabetes','Autoimmune disease','Anemia','None'].map(opt => (
                 <ChipOption
@@ -227,7 +245,9 @@ export default function App() {
                 />
               ))}
             </div>
+            <Hint>Private to your doctor. Hormonal conditions change how hair loss is interpreted.</Hint>
             <BigButton onClick={goNext} disabled={!canContinue()}>Continue</BigButton>
+            {!canContinue() && <p className="field-error">Pick at least one — tap None if nothing applies</p>}
           </SectionCard>
         )
 
@@ -255,15 +275,17 @@ export default function App() {
 
       case 'q8':
         return (
-          <SectionCard title="Acne or oily skin in adulthood?" subtitle="After your teenage years.">
+          <SectionCard title="Acne or oily skin in adulthood?" subtitle="After your teenage years — hormonal clues your doctor uses.">
             <YesNo value={answers.adultAcneOilySkin} onChange={v => { update({ adultAcneOilySkin: v }); setTimeout(goNext, 220) }} />
+            <Hint>Adult acne can signal hormonal balance — your doctor reads it with Q5 and Q9.</Hint>
           </SectionCard>
         )
 
       case 'q9':
         return (
-          <SectionCard title="Excess body or facial hair growth?" subtitle="Unwanted hair on face, chest or back.">
+          <SectionCard title="Excess body or facial hair growth?" subtitle="Unwanted hair on face, chest or back — a gentle hormonal signal.">
             <YesNo value={answers.excessBodyFacialHair} onChange={v => { update({ excessBodyFacialHair: v }); setTimeout(goNext, 220) }} />
+            <Hint>Helps your doctor decide if a hormonal workup is useful. Only your doctor sees this.</Hint>
           </SectionCard>
         )
 
@@ -288,9 +310,11 @@ export default function App() {
         )
 
       case 'q11': {
+        const allAnswered = answers.smoking !== null && answers.alcohol !== null && answers.hardWater !== null && !!answers.hairWashFrequency && answers.heatingTools !== null && answers.salonTreatments !== null
         return (
           <SectionCard title="Daily habits" subtitle="Quick yes / no for each. Details only if needed.">
             <div className="habit-list">
+              <div className="habit-group-label">Lifestyle</div>
               <div className="habit-row">
                 <div className="habit-main"><span className="habit-label">Smoking</span><YesNo value={answers.smoking} onChange={v => update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null })} /></div>
                 {answers.smoking && (
@@ -304,13 +328,13 @@ export default function App() {
                   </div>
                 )}
               </div>
-
               <div className="habit-row"><div className="habit-main"><span className="habit-label">Alcohol</span><YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} /></div></div>
               <div className="habit-row"><div className="habit-main"><span className="habit-label">Hard water for hair wash</span><YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} /></div></div>
 
+              <div className="habit-group-label" style={{marginTop:14}}>Hair care</div>
               <div className="habit-row">
-                <div className="habit-followup" style={{borderTop:'none', paddingTop:0}}>
-                  <div className="followup-label">Hair wash frequency</div>
+                <div className="habit-main" style={{flexDirection:'column', alignItems:'stretch'}}>
+                  <span className="habit-label" style={{marginBottom:8}}>Hair wash frequency</span>
                   <div className="opt-grid small">
                     {['Daily','Alternate Days','Weekly'].map(opt => (
                       <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} />
@@ -318,9 +342,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
               <div className="habit-row"><div className="habit-main"><span className="habit-label">Heating tools / styling chemicals</span><YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} /></div></div>
-
               <div className="habit-row">
                 <div className="habit-main"><span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span><YesNo value={answers.salonTreatments} onChange={v => update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null })} /></div>
                 {answers.salonTreatments && (
@@ -330,6 +352,7 @@ export default function App() {
                 )}
               </div>
             </div>
+            {!allAnswered && <p className="field-hint">Tip: answer all, then Continue</p>}
             <BigButton onClick={goNext}>Continue</BigButton>
           </SectionCard>
         )
@@ -337,13 +360,21 @@ export default function App() {
 
       case 'q12': {
         const rows = ['Medicated Shampoos','Hair Oils/Serums','Topical Minoxidil','Oral Minoxidil','Supplements'] as const
+        const anyUsed = Object.values(answers.products).some(v=>v.used)
         return (
-          <SectionCard title="Products you&apos;ve tried" subtitle="For each, tell us if you used it — we&apos;ll ask for how long and how it went.">
-            <div className="table-grid">
+          <SectionCard title="Products you&apos;ve tried" subtitle="Tap Used only where needed — everything else stays collapsed.">
+            <button type="button" className="fast-path" onClick={()=>{
+              const next={ ...answers.products }
+              for(const k of rows) next[k]={ used:false, duration:null, helped:null, sideEffects:null }
+              update({ products: next })
+              setTimeout(goNext, 300)
+            }}>Never used any → skip</button>
+            {!anyUsed && <p className="field-hint" style={{marginTop:8}}>Or mark the few you did use below.</p>}
+            <div className="table-grid" style={{marginTop:12}}>
               {rows.map(row => {
                 const p = answers.products[row]
                 return (
-                  <div key={row} className="table-row">
+                  <div key={row} className={`table-row ${p.used?'is-open':''}`}>
                     <div className="table-row-head">
                       <span className="table-row-label">{row}</span>
                       <YesNo value={p.used} onChange={v => update({ products: { ...answers.products, [row]: { ...p, used: v, duration: v ? p.duration : null, helped: v ? p.helped : null, sideEffects: v ? p.sideEffects : null } } })} yesLabel="Used" noLabel="Never" />
@@ -371,13 +402,21 @@ export default function App() {
 
       case 'q13': {
         const rows = ['PRP/GFC/iPRF','Stem Cells/Exosomes','Hair Transplant','Other'] as const
+        const anyDone = Object.values(answers.procedures).some(v=>v.done)
         return (
-          <SectionCard title="In-clinic procedures" subtitle="Anything done at a clinic before?">
-            <div className="table-grid">
+          <SectionCard title="In-clinic procedures" subtitle="Tap Done only where applicable — rest stay collapsed.">
+            <button type="button" className="fast-path" onClick={()=>{
+              const next={ ...answers.procedures }
+              for(const k of rows) next[k]={ done:false, sessions:null, helped:null }
+              update({ procedures: next })
+              setTimeout(goNext, 300)
+            }}>None done → skip</button>
+            {!anyDone && <p className="field-hint" style={{marginTop:8}}>Or mark the few you had below.</p>}
+            <div className="table-grid" style={{marginTop:12}}>
               {rows.map(row => {
                 const p = answers.procedures[row]
                 return (
-                  <div key={row} className="table-row">
+                  <div key={row} className={`table-row ${p.done?'is-open':''}`}>
                     <div className="table-row-head">
                       <span className="table-row-label">{row}</span>
                       <YesNo value={p.done} onChange={v => update({ procedures: { ...answers.procedures, [row]: { ...p, done: v, sessions: v ? p.sessions : null, helped: v ? p.helped : null } } })} yesLabel="Done" noLabel="Never" />
@@ -527,7 +566,7 @@ export default function App() {
             total={totalSteps - 2}
             stepId={step}
             onBack={isFirstStep(step, answers) ? undefined : goPrev}
-            onClose={() => { if (confirm('Leave? Your progress is saved on this device.')) setStep('welcome') }}
+            onClose={() => setShowLeaveSheet(true)}
           />
         </>
       )}
@@ -535,8 +574,20 @@ export default function App() {
       {step !== 'welcome' && step !== 'done' && (
         <footer className="footer">
           <span>Step {currentIndex} of {totalSteps - 2}</span>
-          <span className="footer-hint">Back to change · saved automatically</span>
+          <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
         </footer>
+      )}
+      {showLeaveSheet && (
+        <div className="sheet-backdrop" onClick={()=>setShowLeaveSheet(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="Leave intake?" onClick={e=>e.stopPropagation()}>
+            <h3>Leave intake?</h3>
+            <p>Your progress is saved on this device for 7 days. You can resume where you left off.</p>
+            <div className="sheet-actions">
+              <BigButton variant="ghost" onClick={()=>setShowLeaveSheet(false)}>Resume</BigButton>
+              <BigButton variant="secondary" onClick={()=>{ setShowLeaveSheet(false); setStep('welcome') }}>Leave</BigButton>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

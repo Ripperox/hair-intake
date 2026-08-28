@@ -130,6 +130,7 @@ export function NumberStepper({
   label?: string
 }) {
   const [local, setLocal] = useState(value)
+  useEffect(()=>{ setLocal(value) }, [value])
   const num = parseInt(local, 10)
   const inc = () => {
     const n = isNaN(num) ? min : Math.min(max, num + 1)
