@@ -128,12 +128,28 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 
 /* Table grid (products/procedures) */
 .table-grid{ display:flex; flex-direction:column; gap:12px }
-.table-row{ border:1px solid var(--line); border-radius:14px; padding:14px; background:var(--card) }
+.table-row{ border:1px solid var(--line); border-radius:14px; padding:10px 12px; background:var(--card) }
+.table-row.is-used{ border-color:var(--accent-line); background:var(--accent-soft) }
 .table-row-head{ display:flex; align-items:center; justify-content:space-between; gap:12px }
-.table-row-label{ font-size:14px; font-weight:700; color:var(--text) }
+.table-row-label{ appearance:none; border:0; background:none; padding:0; font-family:inherit; font-size:14px; font-weight:700; color:var(--text); text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:3px; min-width:0; align-items:flex-start }
+.table-row-label:hover{ color:var(--accent) }
+.table-row-summary{ font-size:12px; font-weight:600; color:var(--muted); line-height:1.35; display:none }
+.table-row-summary.show{ display:block }
+.table-row.is-used .table-row-label span:first-child{ color:var(--accent) }
 .table-row-body{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:10px }
 .table-yn-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; font-weight:600; color:var(--text-2) }
 .table-yn-row .yesno{ min-width:160px }
+
+/* Row-details popup (Q12/Q13 follow-ups) — no inline expansion, no layout jump */
+.detail-backdrop{ position:fixed; inset:0; background:rgba(26,26,26,.42); backdrop-filter:blur(6px); display:grid; place-items:center; z-index:60; padding:16px }
+.detail-card{ width:100%; max-width:420px; max-height:88dvh; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:var(--shadow) }
+.detail-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px }
+.detail-title{ font-size:18px; font-weight:800; line-height:1.2; margin:0 }
+.detail-sub{ font-size:12.5px; color:var(--muted); margin:3px 0 0 }
+.detail-body{ display:flex; flex-direction:column; gap:14px }
+.detail-body .opt-grid{ margin-top:6px }
+.detail-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px }
+.detail-actions .btn{ margin-top:0 }
 
 /* Consent */
 .consent-card{ display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:14px; border:1.5px solid var(--line); background:var(--card); cursor:pointer }

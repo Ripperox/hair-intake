@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
-import type { Answers } from './schema'
+import type { Answers, ProductEntry, ProcedureEntry } from './schema'
 import { normalizeAnswers, EMPTY_ANSWERS, PRODUCT_ROW_KEYS, PROCEDURE_ROW_KEYS } from './schema'
 import { useIsDesktop } from './use-is-desktop'
 import {
@@ -67,6 +67,7 @@ export default function App() {
   })
   const [step, setStep] = useState<Screen>('welcome')
   const [showLeaveSheet, setShowLeaveSheet] = useState(false)
+  const [editRow, setEditRow] = useState<{ kind: 'product' | 'procedure'; key: string } | null>(null)
   const isDesktop = useIsDesktop()
   const patternSeeded = useRef(false)
   const answersRef = useRef(answers)
@@ -93,6 +94,13 @@ export default function App() {
 
   const update = useCallback((patch: Partial<Answers>) => {
     setAnswers(prev => ({ ...prev, ...patch }))
+  }, [])
+
+  const editProduct = useCallback((row: string, patch: Partial<ProductEntry>) => {
+    setAnswers(prev => ({ ...prev, products: { ...prev.products, [row]: { ...prev.products[row], ...patch } } }))
+  }, [])
+  const editProcedure = useCallback((row: string, patch: Partial<ProcedureEntry>) => {
+    setAnswers(prev => ({ ...prev, procedures: { ...prev.procedures, [row]: { ...prev.procedures[row], ...patch } } }))
   }, [])
 
   const screenIndex = SCREEN_ORDER.indexOf(step)
@@ -143,6 +151,7 @@ export default function App() {
     if (!isDesktop) return
     const onKey = (e: KeyboardEvent) => {
       if (showLeaveSheet) return
+      if (e.key === 'Escape') { setEditRow(null); return }
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       const axis = [...SECTIONS, 'summary'] as Screen[]
@@ -160,7 +169,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isDesktop, step, showLeaveSheet, goNext, goPrev])
+  }, [isDesktop, step, showLeaveSheet, goNext, goPrev, editRow])
 
   // Desktop: when a section is targeted, bring it into view (rail + arrows).
   const prevStep = useRef<Screen>('welcome')
@@ -383,24 +392,19 @@ export default function App() {
                 <div className="table-grid" style={{ marginTop: 12 }}>
                   {PRODUCT_ROW_KEYS.map(row => {
                     const p = answers.products[row]
+                    const summary = p.used ? `${p.duration ? p.duration + ' · ' : ''}${p.helped == null ? '?' : p.helped ? 'helped' : 'no help'}${p.sideEffects == null ? '' : p.sideEffects ? ' · side effects' : ''}` : ''
                     return (
-                      <div key={row} className={`table-row ${p.used ? 'is-open' : ''}`}>
+                      <div key={row} className={`table-row ${p.used ? 'is-used' : ''}`}>
                         <div className="table-row-head">
-                          <span className="table-row-label">{row}</span>
-                          <YesNo value={p.used} onChange={v => update({ products: { ...answers.products, [row]: { ...p, used: v, duration: v ? p.duration : null, helped: v ? p.helped : null, sideEffects: v ? p.sideEffects : null } } })} yesLabel="Used" noLabel="Never" />
+                          <button type="button" className="table-row-label" onClick={() => setEditRow({ kind: 'product', key: row })}>
+                            <span>{row}</span>
+                            <span className={`table-row-summary ${p.used ? 'show' : ''}`}>{summary}</span>
+                          </button>
+                          <YesNo value={p.used} onChange={v => {
+                            if (v) setEditRow({ kind: 'product', key: row })
+                            update({ products: { ...answers.products, [row]: { used: v, duration: v ? p.duration : null, helped: v ? p.helped : null, sideEffects: v ? p.sideEffects : null } } })
+                          }} yesLabel="Used" noLabel="Never" />
                         </div>
-                        {p.used && (
-                          <div className="table-row-body">
-                            <div className="followup-label">How long?</div>
-                            <div className="opt-grid small">
-                              {['<3mo','3-6mo','>6mo'].map(opt => (
-                                <OptionCard key={opt} label={opt} selected={p.duration === opt} onSelect={() => update({ products: { ...answers.products, [row]: { ...p, duration: opt } } })} />
-                              ))}
-                            </div>
-                            <div className="table-yn-row"><span>Did it help?</span><YesNo value={p.helped} onChange={v => update({ products: { ...answers.products, [row]: { ...p, helped: v } } })} /></div>
-                            <div className="table-yn-row"><span>Any side effects?</span><YesNo value={p.sideEffects} onChange={v => update({ products: { ...answers.products, [row]: { ...p, sideEffects: v } } })} /></div>
-                          </div>
-                        )}
                       </div>
                     )
                   })}
@@ -417,23 +421,19 @@ export default function App() {
                 <div className="table-grid" style={{ marginTop: 12 }}>
                   {PROCEDURE_ROW_KEYS.map(row => {
                     const p = answers.procedures[row]
+                    const summary = p.done ? `${p.sessions ? p.sessions + ' sessions · ' : ''}${p.helped == null ? '?' : p.helped ? 'helped' : 'no help'}` : ''
                     return (
-                      <div key={row} className={`table-row ${p.done ? 'is-open' : ''}`}>
+                      <div key={row} className={`table-row ${p.done ? 'is-used' : ''}`}>
                         <div className="table-row-head">
-                          <span className="table-row-label">{row}</span>
-                          <YesNo value={p.done} onChange={v => update({ procedures: { ...answers.procedures, [row]: { ...p, done: v, sessions: v ? p.sessions : null, helped: v ? p.helped : null } } })} yesLabel="Done" noLabel="Never" />
+                          <button type="button" className="table-row-label" onClick={() => setEditRow({ kind: 'procedure', key: row })}>
+                            <span>{row}</span>
+                            <span className={`table-row-summary ${p.done ? 'show' : ''}`}>{summary}</span>
+                          </button>
+                          <YesNo value={p.done} onChange={v => {
+                            if (v) setEditRow({ kind: 'procedure', key: row })
+                            update({ procedures: { ...answers.procedures, [row]: { done: v, sessions: v ? p.sessions : null, helped: v ? p.helped : null } } })
+                          }} yesLabel="Done" noLabel="Never" />
                         </div>
-                        {p.done && (
-                          <div className="table-row-body">
-                            <div className="followup-label">How many sessions?</div>
-                            <div className="opt-grid small">
-                              {['1-3','4-6','>6'].map(opt => (
-                                <OptionCard key={opt} label={opt} selected={p.sessions === opt} onSelect={() => update({ procedures: { ...answers.procedures, [row]: { ...p, sessions: opt } } })} />
-                              ))}
-                            </div>
-                            <div className="table-yn-row"><span>Did it help?</span><YesNo value={p.helped} onChange={v => update({ procedures: { ...answers.procedures, [row]: { ...p, helped: v } } })} /></div>
-                          </div>
-                        )}
                       </div>
                     )
                   })}
@@ -637,6 +637,48 @@ export default function App() {
     </div>
   )
 
+  // Q12/Q13 follow-ups live in a popup, not inline — no layout jump when the
+  // page grows/shrinks. Tap the row (or flip to Used/Done) to open it.
+  const detailModal = editRow && (() => {
+    const isProduct = editRow.kind === 'product'
+    const entry = isProduct ? answers.products[editRow.key] : answers.procedures[editRow.key]
+    if (!entry) return null
+    const sub = isProduct ? 'OTC / medicated product' : 'In-clinic procedure'
+    const durLabel = isProduct ? 'How long did you use it?' : 'How many sessions?'
+    const durs = isProduct ? ['<3mo', '3-6mo', '>6mo'] : ['1-3', '4-6', '>6']
+    return (
+      <div className="detail-backdrop" onClick={() => setEditRow(null)}>
+        <div className="detail-card" role="dialog" aria-modal="true" aria-label={`${editRow.key} details`} onClick={e => e.stopPropagation()}>
+          <div className="detail-head">
+            <div>
+              <h3 className="detail-title">{editRow.key}</h3>
+              <p className="detail-sub">{sub}</p>
+            </div>
+            <button type="button" className="icon-btn" onClick={() => setEditRow(null)} aria-label="Close">✕</button>
+          </div>
+          <div className="detail-body">
+            <div className="followup-label">{durLabel}</div>
+            <div className="opt-grid small">
+              {durs.map(opt => (
+                <OptionCard key={opt} label={opt} selected={isProduct ? (entry as ProductEntry).duration === opt : (entry as ProcedureEntry).sessions === opt} onSelect={() => isProduct ? editProduct(editRow.key, { duration: opt }) : editProcedure(editRow.key, { sessions: opt })} />
+              ))}
+            </div>
+            <div className="table-yn-row"><span>Did it help?</span><YesNo value={entry.helped} onChange={v => isProduct ? editProduct(editRow.key, { helped: v }) : editProcedure(editRow.key, { helped: v })} /></div>
+            {isProduct && <div className="table-yn-row"><span>Any side effects?</span><YesNo value={(entry as ProductEntry).sideEffects} onChange={v => editProduct(editRow.key, { sideEffects: v })} /></div>}
+          </div>
+          <div className="detail-actions">
+            <BigButton variant="ghost" onClick={() => {
+              if (isProduct) editProduct(editRow.key, { used: false, duration: null, helped: null, sideEffects: null })
+              else editProcedure(editRow.key, { done: false, sessions: null, helped: null })
+              setEditRow(null)
+            }}>I haven't used this</BigButton>
+            <BigButton onClick={() => setEditRow(null)}>Done</BigButton>
+          </div>
+        </div>
+      </div>
+    )
+  })()
+
   const renderDeskShell = () => {
     const { answered, total } = essentialStats()
     const allDone = SECTIONS.every(s => sectionComplete(s))
@@ -707,6 +749,7 @@ export default function App() {
         </aside>
 
         {sheet}
+        {detailModal}
       </div>
     )
   }
@@ -746,6 +789,7 @@ export default function App() {
         </div>
       )}
       {sheet}
+      {detailModal}
     </div>
   )
 }
