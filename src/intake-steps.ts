@@ -125,7 +125,7 @@ export function initialAnswers(): Answers {
     salonTreatments: null,
     salonTreatmentDetail: null,
     products: {
-      'Medicated Shampoos': { used: false, duration: null, helped: null, sideEffects: null },
+      'OTC/Medicated Shampoos': { used: false, duration: null, helped: null, sideEffects: null },
       'Hair Oils/Serums': { used: false, duration: null, helped: null, sideEffects: null },
       'Topical Minoxidil': { used: false, duration: null, helped: null, sideEffects: null },
       'Oral Minoxidil': { used: false, duration: null, helped: null, sideEffects: null },

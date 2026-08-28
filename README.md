@@ -29,7 +29,7 @@ No env vars. No API keys in repo. Works offline after load.
 
 | Decision | Choice | Why |
 |---|---|---|
-| **No LLM / no STT service** | Built deterministic logic | The 16 questions are fixed. An LLM would add latency, cost, flakiness and an API key for zero coverage gain. For a 55yo on a phone, determinism is a feature. Hinglish phrasing is in copy, not in a model. |
+| **No LLM / no STT service** | Built deterministic logic | The 16 questions are fixed. An LLM would add ~$0.02 + 1.2s per step ×16 ≈ $0.32 and 19s wait, plus an API key and flakiness, for zero coverage gain. Determinism is a feature for a 55yo on a phone. Hinglish is in copy, not a model. |
 | **No backend** | Client-only, `localStorage` for resume | No login/admin per rules. Persisting answers locally means a dropped call doesn't lose progress, and there's no PII on a server. The filled JSON is downloadable/copiable at the end — a real clinic would POST it; a static demo shouldn't pretend to store PHI. |
 | **Vite + React** | Bought (off-the-shelf) | Fastest to a polished, deployable build. Typed schema → typed UI → typed JSON output in one codebase. No need for Django/DRF for a patient-facing step flow; a frontend-leaning hire should bias to where taste shows. |
 | **Progress & conditional steps** | Built (`intake-steps.ts`) | Female-only Q6/Q7 appear only if sex=female — otherwise skipped. Weight-aware progress so tables don't jump the bar. This is the "infer and just confirm" taste the brief asks for. |

@@ -47,7 +47,7 @@ function freshAnswers(): Answers {
     salonTreatments: null,
     salonTreatmentDetail: null,
     products: {
-      'Medicated Shampoos': { used: false, duration: null, helped: null, sideEffects: null },
+      'OTC/Medicated Shampoos': { used: false, duration: null, helped: null, sideEffects: null },
       'Hair Oils/Serums': { used: false, duration: null, helped: null, sideEffects: null },
       'Topical Minoxidil': { used: false, duration: null, helped: null, sideEffects: null },
       'Oral Minoxidil': { used: false, duration: null, helped: null, sideEffects: null },
@@ -115,11 +115,13 @@ export default function App() {
     switch (step) {
       case 'welcome': return true
       case 'sex': return true
-      case 'q1': return !!answers.ageHairLossBegan && parseInt(answers.ageHairLossBegan, 10) >= 1
+      case 'q1': {
+        const n = parseInt(answers.ageHairLossBegan, 10)
+        return !!answers.ageHairLossBegan && !isNaN(n) && n >= 10 && n <= 80
+      }
       case 'q3': return answers.familyHistory.length > 0
       case 'q4': return answers.pattern.length > 0
       case 'q5': return answers.diagnosedConditions.length > 0
-      case 'q10': return answers.past6Months.length > 0
       case 'q14': return answers.pastTreatmentSideEffects !== null
       case 'q16': return !!answers.consent
       default: return true
@@ -291,21 +293,22 @@ export default function App() {
 
       case 'q10':
         return (
-          <SectionCard title="In the last 6 months, any of these?" subtitle="Select all that happened.">
+          <SectionCard title="In the last 6 months, any of these?" subtitle="Select all that happened — or none.">
             <div className="chip-grid">
               {[
                 'Crash dieting or major weight loss',
                 'High stress or emotional trauma',
                 'Fever with illness (COVID, Dengue, Typhoid)',
                 'Recent surgery',
-                'Change in location / water / air quality',
+                'Change in location/water/air quality',
               ].map(opt => (
                 <ChipOption key={opt} label={opt} selected={answers.past6Months.includes(opt)} onToggle={() => {
                   update({ past6Months: answers.past6Months.includes(opt) ? answers.past6Months.filter(x => x !== opt) : [...answers.past6Months, opt] })
                 }} />
               ))}
             </div>
-            <BigButton onClick={goNext} disabled={!canContinue()}>Continue</BigButton>
+            <Hint>Tap what applies. If nothing happened, just Continue.</Hint>
+            <BigButton onClick={goNext}>Continue</BigButton>
           </SectionCard>
         )
 
@@ -359,7 +362,7 @@ export default function App() {
       }
 
       case 'q12': {
-        const rows = ['Medicated Shampoos','Hair Oils/Serums','Topical Minoxidil','Oral Minoxidil','Supplements'] as const
+        const rows = ['OTC/Medicated Shampoos','Hair Oils/Serums','Topical Minoxidil','Oral Minoxidil','Supplements'] as const
         const anyUsed = Object.values(answers.products).some(v=>v.used)
         return (
           <SectionCard title="Products you&apos;ve tried" subtitle="Tap Used only where needed — everything else stays collapsed.">
