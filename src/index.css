@@ -149,8 +149,13 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 
 /* Summary */
 .summary-list{ display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--card) }
-.summary-row{ display:flex; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); font-size:13.5px; line-height:1.4 }
+.summary-row{ display:flex; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); font-size:13.5px; line-height:1.4; appearance:none; width:100%; margin:0; background:none; border-left:0; border-right:0; border-top:0; font-family:inherit; cursor:pointer; color:inherit; text-align:left; align-items:center; transition:background .12s }
 .summary-row:last-child{ border-bottom:none }
+.summary-row.is-editable:hover{ background:var(--bg-soft) }
+.summary-row.is-editable:focus-visible{ outline:none; background:var(--accent-soft) }
+.summary-row.is-editable:disabled{ cursor:default }
+.summary-edit{ flex:none; font-size:13px; color:var(--muted); opacity:0; transition:opacity .12s }
+.summary-row.is-editable:hover .summary-edit{ opacity:1; color:var(--accent) }
 .summary-label{ color:var(--muted); font-weight:600; flex:0 0 42% }
 .summary-value{ color:var(--text); font-weight:650; text-align:right; flex:1; word-break:break-word }
 .summary-divider{ height:1px; background:var(--line); margin:0 }

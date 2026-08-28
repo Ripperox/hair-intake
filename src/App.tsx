@@ -503,34 +503,33 @@ export default function App() {
         return (
           <SectionCard title="Review — looks right?" subtitle="Tap any answer to go back and change it.">
             <div className="summary-list">
-              <SummaryRow label="Context" value={answers.sex || '— not specified'} />
-              <SummaryRow label="Age when hair loss began" value={answers.ageHairLossBegan || '—'} />
-              <SummaryRow label="How long" value={answers.duration || '—'} />
-              <SummaryRow label="Family history" value={answers.familyHistory.join(' · ') || '—'} />
-              <SummaryRow label="Pattern" value={answers.pattern.join(' · ') || '—'} />
-              <SummaryRow label="Diagnosed conditions" value={answers.diagnosedConditions.join(' · ') || '—'} />
-              {answers.sex === 'female' && <SummaryRow label="Menstrual cycle" value={answers.menstrualCycle || '—'} />}
-              {answers.sex === 'female' && <SummaryRow label="Pregnancy" value={answers.pregnancyRelated || '—'} />}
-              <SummaryRow label="Acne / oily skin" value={answers.adultAcneOilySkin === null ? '—' : answers.adultAcneOilySkin ? 'Yes' : 'No'} />
-              <SummaryRow label="Excess hair growth" value={answers.excessBodyFacialHair === null ? '—' : answers.excessBodyFacialHair ? 'Yes' : 'No'} />
-              <SummaryRow label="Last 6 months" value={answers.past6Months.join(' · ') || 'None selected'} />
-              <SummaryRow label="Smoking" value={answers.smoking === null ? '—' : answers.smoking ? `Yes — ${answers.smokingSeverity || '—'}` : 'No'} />
-              <SummaryRow label="Alcohol" value={answers.alcohol === null ? '—' : answers.alcohol ? 'Yes' : 'No'} />
-              <SummaryRow label="Hard water" value={answers.hardWater === null ? '—' : answers.hardWater ? 'Yes' : 'No'} />
-              <SummaryRow label="Wash frequency" value={answers.hairWashFrequency || '—'} />
-              <SummaryRow label="Heating tools / chemicals" value={answers.heatingTools === null ? '—' : answers.heatingTools ? 'Yes' : 'No'} />
-              <SummaryRow label="Salon treatments" value={answers.salonTreatments ? `Yes — ${answers.salonTreatmentDetail || 'not specified'}` : answers.salonTreatments === false ? 'No' : '—'} />
-              {hasProducts && <div className="summary-divider" />}
+              <SummaryRow label="Context" value={answers.sex || '— not specified'} onEdit={() => setStep('sex')} />
+              <SummaryRow label="Age when hair loss began" value={answers.ageHairLossBegan || '—'} onEdit={() => setStep('q1')} />
+              <SummaryRow label="How long" value={answers.duration || '—'} onEdit={() => setStep('q2')} />
+              <SummaryRow label="Family history" value={answers.familyHistory.join(' · ') || '—'} onEdit={() => setStep('q3')} />
+              <SummaryRow label="Pattern" value={answers.pattern.join(' · ') || '—'} onEdit={() => setStep('q4')} />
+              <SummaryRow label="Diagnosed conditions" value={answers.diagnosedConditions.join(' · ') || '—'} onEdit={() => setStep('q5')} />
+              {answers.sex === 'female' && <SummaryRow label="Menstrual cycle" value={answers.menstrualCycle || '—'} onEdit={() => setStep('q6')} />}
+              {answers.sex === 'female' && <SummaryRow label="Pregnancy" value={answers.pregnancyRelated || '—'} onEdit={() => setStep('q7')} />}
+              <SummaryRow label="Acne / oily skin" value={answers.adultAcneOilySkin === null ? '—' : answers.adultAcneOilySkin ? 'Yes' : 'No'} onEdit={() => setStep('q8')} />
+              <SummaryRow label="Excess hair growth" value={answers.excessBodyFacialHair === null ? '—' : answers.excessBodyFacialHair ? 'Yes' : 'No'} onEdit={() => setStep('q9')} />
+              <SummaryRow label="Last 6 months" value={answers.past6Months.join(' · ') || 'None selected'} onEdit={() => setStep('q10')} />
+              <SummaryRow label="Smoking" value={answers.smoking === null ? '—' : answers.smoking ? `Yes — ${answers.smokingSeverity || '—'}` : 'No'} onEdit={() => setStep('q11')} />
+              <SummaryRow label="Alcohol" value={answers.alcohol === null ? '—' : answers.alcohol ? 'Yes' : 'No'} onEdit={() => setStep('q11')} />
+              <SummaryRow label="Hard water" value={answers.hardWater === null ? '—' : answers.hardWater ? 'Yes' : 'No'} onEdit={() => setStep('q11')} />
+              <SummaryRow label="Wash frequency" value={answers.hairWashFrequency || '—'} onEdit={() => setStep('q11')} />
+              <SummaryRow label="Heating tools / chemicals" value={answers.heatingTools === null ? '—' : answers.heatingTools ? 'Yes' : 'No'} onEdit={() => setStep('q11')} />
+              <SummaryRow label="Salon treatments" value={answers.salonTreatments ? `Yes — ${answers.salonTreatmentDetail || 'not specified'}` : answers.salonTreatments === false ? 'No' : '—'} onEdit={() => setStep('q11')} />{hasProducts && <div className="summary-divider" />}
               {Object.entries(answers.products).filter(([,v]) => v.used).map(([k,v]) => (
-                <SummaryRow key={k} label={k} value={`${v.duration || '—'} · helped: ${v.helped === null ? '—' : v.helped ? 'yes' : 'no'} · side effects: ${v.sideEffects === null ? '—' : v.sideEffects ? 'yes' : 'no'}`} />
+                <SummaryRow key={k} label={k} value={`${v.duration || '—'} · helped: ${v.helped === null ? '—' : v.helped ? 'yes' : 'no'} · side effects: ${v.sideEffects === null ? '—' : v.sideEffects ? 'yes' : 'no'}`} onEdit={() => setStep('q12')} />
               ))}
               {hasProcedures && <div className="summary-divider" />}
               {Object.entries(answers.procedures).filter(([,v]) => v.done).map(([k,v]) => (
-                <SummaryRow key={k} label={k} value={`${v.sessions || '—'} sessions · helped: ${v.helped === null ? '—' : v.helped ? 'yes' : 'no'}`} />
+                <SummaryRow key={k} label={k} value={`${v.sessions || '—'} sessions · helped: ${v.helped === null ? '—' : v.helped ? 'yes' : 'no'}`} onEdit={() => setStep('q13')} />
               ))}
-              <SummaryRow label="Past treatment side effects" value={answers.pastTreatmentSideEffects ? `Yes — ${answers.pastTreatmentDescribe || 'no detail'}` : answers.pastTreatmentSideEffects === false ? 'No' : '—'} />
-              <SummaryRow label="Sample" value={answers.sampleType || '—'} />
-              <SummaryRow label="Consent" value={answers.consent ? 'Yes' : 'No'} />
+              <SummaryRow label="Past treatment side effects" value={answers.pastTreatmentSideEffects ? `Yes — ${answers.pastTreatmentDescribe || 'no detail'}` : answers.pastTreatmentSideEffects === false ? 'No' : '—'} onEdit={() => setStep('q14')} />
+              <SummaryRow label="Sample" value={answers.sampleType || '—'} onEdit={() => setStep('q15')} />
+              <SummaryRow label="Consent" value={answers.consent ? 'Yes' : 'No'} onEdit={() => setStep('q16')} />
             </div>
             <BigButton onClick={() => setStep('done')}>Confirm & complete</BigButton>
             <BigButton variant="ghost" onClick={goPrev}>Go back</BigButton>
@@ -646,12 +645,13 @@ export default function App() {
   )
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value, onEdit }: { label: string; value: string; onEdit?: () => void }) {
   return (
-    <div className="summary-row">
+    <button type="button" className={`summary-row ${onEdit ? 'is-editable' : ''}`} onClick={onEdit} disabled={!onEdit}>
       <span className="summary-label">{label}</span>
       <span className="summary-value">{value}</span>
-    </div>
+      {onEdit && <span className="summary-edit" aria-hidden="true">✎</span>}
+    </button>
   )
 }
 
