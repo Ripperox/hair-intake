@@ -28,7 +28,14 @@ The "how" behind the build, in ~one page. Each decision names the option I had, 
 
 - The judges test both. A stretched phone layout is a "one size fits all"; the rail + keyboard flow is what a desk-filling clerk (or a 55yo who prefers typing) actually wants. Same typed state engine underneath.
 
-## 5. Everything else is borrowed, built is intentional
+## 5. Five screens, not sixteen taps
+
+**Option:** one-question-per-screen wizard (the earlier build). **Chose:** 5 screens matching the doctor form's sections A–E.
+
+- A real PM's first critique was "16 steps for a form is too much." The fixed output is a 5-section form, so the patient sees exactly those 5 titled screens with per-question controls inside each. Fewer transitions, still no chat box, one sticky Continue per screen.
+- Sex moved from a standalone screen to one chip at the top of Section A — Vishal rightly flagged the schema already has "Not applicable" on Q6/Q7.
+
+## 6. Everything else is borrowed, built is intentional
 
 **Bought:** Vite + React + TypeScript, browser `localStorage`, Vercel static hosting. **Built:** per-question input components, conditionals + weighted progress, resume-with-TTL, bottom-sheet leave confirm, print/motion/320px CSS.
 

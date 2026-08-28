@@ -2,7 +2,7 @@
 
 > The intake that fills itself. Built for Haiku Studio take-home (Aug 2026).
 
-A small web app that gets a patient through a 16-question hair-clinic intake without feeling like a form. One question at a time, big tap targets, per-question input choice, finishable by a 55-year-old on a phone. Only the filled form at the end is fixed — everything the patient sees is designed for feel.
+A small web app that gets a patient through a 16-question hair-clinic intake without feeling like a form. **5 screens — the same 5 sections (A–E) as the doctor's form** — with big tap targets and per-question input choice, finishable by a 55-year-old on a phone. Only the filled form at the end is fixed — everything the patient sees is designed for feel.
 
 **Live:** https://hair-intake.vercel.app  
 **Repo:** https://github.com/Ripperox/hair-intake  
@@ -32,13 +32,14 @@ No env vars. No API keys in repo. Works offline after load.
 | **No LLM / no STT service** | Built deterministic logic | The 16 questions are fixed. An LLM would add ~$0.02 + 1.2s per step ×16 ≈ $0.32 and 19s wait, plus an API key and flakiness, for zero coverage gain. Determinism is a feature for a 55yo on a phone. Hinglish is in copy, not a model. |
 | **No backend** | Client-only, `localStorage` for resume | No login/admin per rules. Persisting answers locally means a dropped call doesn't lose progress, and there's no PII on a server. The filled JSON is downloadable/copiable at the end — a real clinic would POST it; a static demo shouldn't pretend to store PHI. |
 | **Vite + React** | Bought (off-the-shelf) | Fastest to a polished, deployable build. Typed schema → typed UI → typed JSON output in one codebase. No need for Django/DRF for a patient-facing step flow; a frontend-leaning hire should bias to where taste shows. |
-| **Progress & conditional steps** | Built (`intake-steps.ts`) | Female-only Q6/Q7 appear only if sex=female — otherwise skipped. Weight-aware progress so tables don't jump the bar. This is the "infer and just confirm" taste the brief asks for. |
+| **5 screens, not 16 taps** | Built (grouped by schema sections) | The fixed output is a 5-section form — so the patient sees those same 5 titled screens (A–E). Fewer transitions than a 16-step wizard (that was the loudest PM feedback), zero loss of per-question controls. Each screen has one Continue, sticky on every device. |
+| **Conditional questions** | Built (sex gate) | Sex is one chip at the top of Section A. Female-only Q6/Q7 appear only for female; for "prefer not to say" they surface with "Not applicable." Plumbing the field into the section, not a step, keeps the calm. |
 | **Per-question input** | Built (`intake-components.tsx`) | Number stepper (age), single cards (duration/sample), multi chips with exclusive "None" (family/conditions), Yes/No, table-as-cards (habits/products/procedures). Each question gets the lightest control that answers it — not one chat box for everything. |
 | **Speech, only where speech wins** | Built, Web Speech API | The two questions that are naturally spoken (describe salon treatments, describe side effects) get a Speak button → transcript → field. Client-side, free, Hinglish-tolerant (`en-IN`), no key. Advisably, "some are speech" — the tap questions stay taps. Voice notes: iOS Safari lacks recognition, so it degrades to a hint + typing. |
 | **Inference → just confirm (Q4)** | Built, deterministic rule | If hair loss started ≤25 and the father had the same, we pre-mark "receding hairline / crown thinning" as chips with a "we pre-marked these — tap to remove" note. Inferred from earlier answers, always confirmed, never assumed. |
-| **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one tap at a time, thumb-sized, talk-to-fill. Laptop ≥1024px: sticky section rail (A–E) to jump/review, arrow-key navigation + Enter to confirm, wider breathing room. Same state engine, two genuinely different layouts. |
-| **Sex question design** | Built, first after welcome | Asked once, warmly: "Some questions differ for women…" with Male/Female/Prefer not to say + Skip. Female-only questions then gated. Asking once is more respectful than inferring or repeating. |
-| **Styling** | Built, no UI library | Clinic-grade palette (warm paper + deep forest), 52px tap targets, high contrast. No shadcn churn; keeps bundle small and feel precise. |
+| **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one section at a time, thumb-sized, sticky Next. Laptop ≥1024px: sticky section rail (A–E + Review) to jump/review, arrow-key navigation + Enter to confirm, wider breathing room. Same state engine, two genuinely different layouts. |
+| **Sex question design** | Built, one chip in Section A | Male / Female / Prefer not to say. Female-only questions then gated — asked once, warmly, no extra screen. |
+| **Styling** | Built, no UI library | GenoRoot red + warm paper, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and feel precise. |
 | **Deploy** | Vercel static | One command, works without install — matches submission rule. |
 
 **What I bought instead of built:** Vite, React, TypeScript, browser `localStorage`, Vercel hosting. Everything else is built to keep the app deterministic and finished.
@@ -61,14 +62,14 @@ Every question gets the control that answers it fastest. No shared default input
 | Q | Question | Primer | Control | Why |
 |---|---|---|---|---|
 | 1 | Age hair loss began | A · Personal & family | **Typed number ± stepper** | Just "28" + Enter. Faster and more precise than a slider or cards. |
-| 2 | How long | A | **3 cards, one tap** | Auto-advances on tap. Zero thought. |
+| 2 | How long | A | **3 cards, one tap** | Just "Less than 6 months" — zero thought. |
 | 3 | Family history | A | **Chips, exclusive "None"** | Pick several relatives; "No known family history" clears the rest. |
 | 4 | Pattern | A | **Chips + infer & confirm** | If onset ≤25 & father had it, the two most common patterns pre-mark with "we pre-marked these — tap to remove." Inferred, always confirmed. |
 | 5 | Diagnosed conditions | B · Hormonal & health | **Chips, exclusive "None"** | Same light multiselect; private-to-doctor copy. |
-| 6 | Menstrual cycle | B | **Cards, one tap** | Shown only for female patients — men never see it (gating). |
-| 7 | Pregnancy-related | B | **Cards, one tap** | Shown only for female patients. |
-| 8 | Acne / oily skin | B | **Yes/No, one tap** | Boolean = two big buttons, advances automatically. |
-| 9 | Excess body/facial hair | B | **Yes/No, one tap** | Boolean, advances automatically. |
+| 6 | Menstrual cycle | B | **Cards, one tap** | Appears only if sex = female — men never see it (gating). |
+| 7 | Pregnancy-related | B | **Cards, one tap** | Appears only if sex = female. |
+| 8 | Acne / oily skin | B | **Yes/No, one tap** | Boolean = two big buttons. |
+| 9 | Excess body/facial hair | B | **Yes/No, one tap** | Boolean. |
 | 10 | Last-6-months triggers | C · Lifestyle | **Chips, allow-empty** | "If nothing happened, just Continue" — answering none is legitimate. |
 | 11 | Daily habits | C | **Table-as-cards + speech** | Lifestyle vs hair-care groups; sub-questions unfold only when the row is "yes"; salon treatments detail is **voice or type** (Web Speech, en-IN). |
 | 12 | Products tried | D · Treatments | **Fast-path skip** | "Never used any → skip" answers 5 rows in one tap; rows open only when marked Used. |
@@ -77,7 +78,7 @@ Every question gets the control that answers it fastest. No shared default input
 | 15 | Sample type | E · Sample & consent | **Cards with sub-labels** | "Saliva – no needle" / "Blood – more DNA" / "Either". One decisive tap. |
 | 16 | Consent | E | **Big checkbox card** | Deliberately the heaviest interaction in the flow — it's a legal consent. |
 
-Mechanisms at a glance: **one-tap auto-advance ×7** (2, 6, 7, 8, 9, 15, + skips), **chips ×3** (3, 5, 10), **infer & confirm ×1** (4), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **typed number ×1** (1), **consent checkbox ×1** (16).
+Mechanisms at a glance: **one-tap big targets ×6** (2, 6, 7, 8, 9, 15), **chips ×3** (3, 5, 10), **infer & confirm ×1** (4), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **typed number ×1** (1), **consent checkbox ×1** (16). All 16 live on 5 screens.
 
 ## What I'd do with one more week
 
@@ -92,9 +93,9 @@ Mechanisms at a glance: **one-tap auto-advance ×7** (2, 6, 7, 8, 9, 15, + skips
 
 ```
 src/
-  schema.ts              # Answers type + EMPTY_ANSWERS
-  intake-steps.ts        # ordered steps, visibility (female-only), progress
-  intake-components.tsx  # BigButton, OptionCard, ChipOption, YesNo, NumberStepper…
-  App.tsx                # flow + per-question rendering + final JSON
-  index.css              # clinic theme, mobile-first
+  schema.ts              # Answers type + row keys + normalize on load
+  App.tsx                # 5 section screens + flow + final JSON
+  intake-components.tsx  # BigButton, OptionCard, ChipOption, YesNo, NumberStepper, VoicedTextArea…  
+  use-is-desktop.ts      # phone vs laptop (≥1024px) split
+  index.css              # GenoRoot red theme, mobile-first
 ```

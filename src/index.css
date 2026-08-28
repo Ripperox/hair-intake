@@ -11,13 +11,13 @@
   --text-2: #5a5550;
   --muted: #8a8580;
   --faint: #b8b2ab;
-  --accent: #1a6b54;
-  --accent-2: #145240;
-  --accent-soft: #e6f0ec;
-  --accent-line: #b8d5cb;
+  --accent: #c0132b;
+  --accent-2: #9e0f22;
+  --accent-soft: #fdebec;
+  --accent-line: #f0c3c9;
   --chip-bg: #f0ede9;
-  --chip-on: #1a6b54;
-  --chip-on-bg: #e6f0ec;
+  --chip-on: #c0132b;
+  --chip-on-bg: #fdebec;
   --danger: #b42318;
   --r: 16px;
   --r-sm: 10px;
@@ -52,6 +52,19 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .welcome-meta{ display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); margin-bottom:26px; flex-wrap:wrap }
 .dot{ opacity:.4 }
 .welcome-hinglish{ font-size:13px; color:var(--muted); margin-top:14px }
+
+/* Section screen layout */
+.screen-label{ font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:12px 20px 0 }
+.q-block{ border-top:1px solid var(--line); padding:18px 2px 4px; margin-top:18px }
+.q-block:first-of-type{ border-top:none; margin-top:0; padding-top:0 }
+.q-head{ display:flex; align-items:flex-start; gap:10px; margin-bottom:12px }
+.q-num{ width:26px; height:26px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:800; display:grid; place-items:center; flex:none; margin-top:2px }
+.q-title{ font-size:16px; font-weight:800; line-height:1.25; color:var(--text) }
+.q-sub{ font-size:13px; color:var(--text-2); line-height:1.45; margin-top:2px }
+.section-nav{ position:sticky; bottom:46px; display:grid; grid-template-columns:1fr 2fr; gap:10px; padding:12px 20px 14px; background:linear-gradient(rgba(253,252,250,0), rgba(253,252,250,.96) 45%); z-index:15 }
+.section-nav .btn{ margin-top:0; max-width:420px }
+.section-nav .btn:last-child{ max-width:none }
+.section-nav .btn-primary{ justify-self:end }
 
 /* Section card */
 .section-card{ background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:20px; box-shadow:var(--shadow-sm) }
