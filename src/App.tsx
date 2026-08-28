@@ -137,28 +137,41 @@ export default function App() {
     if (i > 0) setStep(SCREEN_ORDER[i - 1])
   }, [step])
 
-  // Desktop keyboard nav: arrows move, Enter confirms (skips list/yes-no buttons).
+  // Desktop keyboard nav: arrows move between sections (no completion gate),
+  // Ctrl/⌘+Enter jumps to Review & finish.
   useEffect(() => {
     if (!isDesktop) return
     const onKey = (e: KeyboardEvent) => {
       if (showLeaveSheet) return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if (e.key === 'ArrowRight' || e.key === 'Enter') {
-        if (SECTIONS.includes(step as any) && sectionComplete(step as any) && (e.key !== 'Enter' || tag !== 'BUTTON')) {
-          e.preventDefault()
-          goNext()
-        } else if (step === 'welcome' || step === 'summary' || step === 'done') {
-          if (step !== 'done') { e.preventDefault(); goNext() }
-        }
+      const axis = [...SECTIONS, 'summary'] as Screen[]
+      if (e.key === 'ArrowRight') {
+        const i = axis.indexOf(step)
+        if (i >= 0 && i < axis.length - 1) { e.preventDefault(); setStep(axis[i + 1]) }
       } else if (e.key === 'ArrowLeft') {
+        const i = axis.indexOf(step)
+        if (i > 0) { e.preventDefault(); setStep(axis[i - 1]) }
+      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        if (step === 'welcome' || step === 'done') return
         e.preventDefault()
-        goPrev()
+        setStep('summary')
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isDesktop, step, answers, showLeaveSheet])
+  }, [isDesktop, step, showLeaveSheet, goNext, goPrev])
+
+  // Desktop: when a section is targeted, bring it into view (rail + arrows).
+  const prevStep = useRef<Screen>('welcome')
+  useEffect(() => {
+    if (!isDesktop || step === prevStep.current) return
+    prevStep.current = step
+    if (step === 'welcome' || step === 'done') { window.scrollTo({ top: 0 }) }
+    else if (step !== 'summary') {
+      document.getElementById(`desk-${step}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [isDesktop, step])
 
   const renderQuestion = (n: string, title: string, subtitle: string | undefined, children: ReactNode) => (
     <div className="q-block">
@@ -561,79 +574,178 @@ export default function App() {
     }
   }
 
-  const curLabel = SECTIONS.includes(step as any) ? SECTION_TITLE[step as string] : step === 'summary' ? 'Review' : ''
-  const doneHome = (step === 'welcome' || step === 'done')
+  const essentialStats = () => {
+    let answered = 0
+    let total = 0
+    answered += Number(validAge()) + Number(!!answers.duration) + Number(answers.familyHistory.length > 0) + Number(answers.pattern.length > 0)
+    total += 4
+    const f = answers.sex === 'female'
+    answered += Number(answers.diagnosedConditions.length > 0) + Number(answers.adultAcneOilySkin !== null) + Number(answers.excessBodyFacialHair !== null) + (f ? Number(!!answers.menstrualCycle) + Number(!!answers.pregnancyRelated) : 0)
+    total += 3 + (f ? 2 : 0)
+    answered += Number(habitsCompleted())
+    total += 1
+    answered += Number(answers.pastTreatmentSideEffects !== null)
+    total += 1
+    answered += Number(!!answers.sampleType) + Number(!!answers.consent)
+    total += 2
+    return { answered, total }
+  }
 
-  return (
-    <div className={`app ${isDesktop ? 'is-desktop' : ''}`}>
-      {isDesktop && !doneHome && (
+  const liveLines = () => {
+    const rows: { label: string; value: string; answered: boolean }[] = []
+    const push = (l: string, v: string | null) => {
+      const val = v && v !== '' ? v : '—'
+      rows.push({ label: l, value: val, answered: val !== '—' })
+    }
+    push('Sex context', answers.sex)
+    push('Age when began', answers.ageHairLossBegan || null)
+    push('Duration', answers.duration)
+    push('Family history', answers.familyHistory.length ? answers.familyHistory.join(' · ') : null)
+    push('Pattern', answers.pattern.length ? answers.pattern.join(' · ') : null)
+    push('Diagnosed conditions', answers.diagnosedConditions.length ? answers.diagnosedConditions.join(' · ') : null)
+    if (answers.sex === 'female') {
+      push('Menstrual cycle', answers.menstrualCycle)
+      push('Pregnancy', answers.pregnancyRelated)
+    }
+    push('Acne / oily skin', answers.adultAcneOilySkin == null ? null : answers.adultAcneOilySkin ? 'Yes' : 'No')
+    push('Excess body / facial hair', answers.excessBodyFacialHair == null ? null : answers.excessBodyFacialHair ? 'Yes' : 'No')
+    push('Last 6 months', answers.past6Months.length ? answers.past6Months.join(' · ') : null)
+    const b = [answers.smoking == null ? null : answers.smoking ? 'Smoking: Yes' : 'Smoking: No', answers.alcohol == null ? null : answers.alcohol ? 'Alcohol: Yes' : 'Alcohol: No', answers.hardWater == null ? null : answers.hardWater ? 'Hard water: Yes' : 'Hard water: No', answers.heatingTools == null ? null : answers.heatingTools ? 'Tools: Yes' : 'Tools: No'].filter(Boolean)
+    push('Smoking · alcohol · water · tools', b.length ? b.join(' · ') : null)
+    push('Hair wash frequency', answers.hairWashFrequency)
+    push('Salon treatments', answers.salonTreatments == null ? null : answers.salonTreatments ? `Yes${answers.salonTreatmentDetail ? ' — ' + answers.salonTreatmentDetail : ''}` : 'No')
+    const used = Object.entries(answers.products).filter(([, v]) => v.used)
+    push('Products tried', used.length ? used.map(([k]) => k).join(' · ') : null)
+    const procs = Object.entries(answers.procedures).filter(([, v]) => v.done)
+    push('In-clinic procedures', procs.length ? procs.map(([k]) => k).join(' · ') : null)
+    push('Past side effects', answers.pastTreatmentSideEffects == null ? null : answers.pastTreatmentSideEffects ? `Yes${answers.pastTreatmentDescribe ? ' — ' + answers.pastTreatmentDescribe : ''}` : 'No')
+    push('Sample', answers.sampleType)
+    push('Consent', answers.consent == null ? null : answers.consent ? 'Yes' : 'No')
+    return rows
+  }
+
+  const sheet = showLeaveSheet && (
+    <div className="sheet-backdrop" onClick={() => setShowLeaveSheet(false)}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Leave intake?" onClick={e => e.stopPropagation()}>
+        <h3>Leave intake?</h3>
+        <p>Your progress is saved on this device for 7 days. You can resume where you left off.</p>
+        <div className="sheet-actions">
+          <BigButton variant="ghost" onClick={() => setShowLeaveSheet(false)}>Resume</BigButton>
+          <BigButton variant="secondary" onClick={() => { setShowLeaveSheet(false); setStep('welcome') }}>Leave</BigButton>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderDeskShell = () => {
+    const { answered, total } = essentialStats()
+    const allDone = SECTIONS.every(s => sectionComplete(s))
+    return (
+      <div className="app is-desktop">
         <aside className="rail">
           <div className="rail-title">Your check-in</div>
-          <p className="rail-sub">Answers save as you go. Jump to any section.</p>
+          <p className="rail-sub">{answered} of {total} essentials answered</p>
           {RAIL.map(g => {
-            const idx = SECTIONS.indexOf(g.screens[0])
-            const cls = idx === sectionIdx ? 'current' : idx < sectionIdx ? 'done' : ''
+            const s = g.screens[0]
+            const complete = sectionComplete(s)
+            const current = step === s
             return (
-              <div className="rail-group" key={g.letter}>
-                <div className="rail-letter">{g.letter}</div>
-                <div className="rail-items">
-                  <button type="button" className={`rail-item ${cls}`} onClick={() => setStep(g.screens[0])}>
-                    <span className="rail-dot" aria-hidden="true" />
-                    {g.title}
-                  </button>
-                </div>
-              </div>
+              <button key={g.letter} type="button" className={`rail-item ${current ? 'current' : ''} ${complete ? 'done' : ''}`} onClick={() => setStep(s)}>
+                <span className="rail-letter">{g.letter}</span>
+                <span className="rail-item-label">{g.title}</span>
+                <span className="rail-check" aria-hidden="true">{complete ? '✓' : ''}</span>
+              </button>
             )
           })}
-          <button type="button" className="rail-item rail-review" onClick={() => setStep('summary')}>
-            <span className={`rail-dot ${sectionIdx >= SECTIONS.length - 1 ? 'done' : ''}`} aria-hidden="true" />
-            Review & finish
+          <button type="button" className={`rail-item rail-review ${step === 'summary' ? 'current' : ''}`} onClick={() => setStep('summary')}>
+            <span className="rail-letter">✓</span>
+            <span className="rail-item-label">Review & finish</span>
           </button>
-          <div className="rail-keys">← → arrow keys move · click to jump</div>
+          <div className="rail-keys">← → move between sections · Ctrl/⌘ Enter to review</div>
         </aside>
-      )}
-      <div className="desktop-body">
-        {!doneHome && (
-          <>
-            <ProgressBar progress={progress} />
-            <StepHeader
-              current={Math.max(1, screenIndex)}
-              total={6}
-              stepId={step}
-              onBack={goPrev}
-              onClose={() => setShowLeaveSheet(true)}
-            />
-            {curLabel && <div className="screen-label">{curLabel}</div>}
-          </>
-        )}
-        <main className="main">{renderScreen()}</main>
-        {!doneHome && (
-          <footer className="footer">
-            <span>{step === 'summary' ? 'Review' : `Section ${step} of 5`}</span>
-            <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
-          </footer>
-        )}
-        {SECTIONS.includes(step as any) && (
-          <div className="section-nav">
-            <BigButton variant="ghost" onClick={goPrev}>← Previous</BigButton>
-            <BigButton onClick={goNext} disabled={!sectionComplete(step as any)}>
-              {step === 'E' ? 'Review & finish' : sectionComplete(step as any) ? `Next — ${SECTION_TITLE[SECTIONS[SECTIONS.indexOf(step as any) + 1] as string]}` : 'Answer everything above'}
-            </BigButton>
+
+        <main className="desk-form">
+          <header className="desk-header">
+            <div className="desk-brand">GenoRoot · Hair & Scalp Intake</div>
+            <div className="desk-count"><b>{answered}</b><span> / {total} essentials</span></div>
+            <button type="button" className="icon-btn" onClick={() => setShowLeaveSheet(true)} aria-label="Close">✕</button>
+          </header>
+
+          <div className="desk-sections">
+            {step === 'summary' ? renderScreen() : SECTIONS.map(s => (
+              <section key={s} id={`desk-${s}`} className={`desk-section ${sectionComplete(s) ? 'is-complete' : ''}`}>
+                {renderSection(s)}
+              </section>
+            ))}
           </div>
-        )}
-      </div>
-      {showLeaveSheet && (
-        <div className="sheet-backdrop" onClick={() => setShowLeaveSheet(false)}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label="Leave intake?" onClick={e => e.stopPropagation()}>
-            <h3>Leave intake?</h3>
-            <p>Your progress is saved on this device for 7 days. You can resume where you left off.</p>
-            <div className="sheet-actions">
-              <BigButton variant="ghost" onClick={() => setShowLeaveSheet(false)}>Resume</BigButton>
-              <BigButton variant="secondary" onClick={() => { setShowLeaveSheet(false); setStep('welcome') }}>Leave</BigButton>
+
+          {allDone && step !== 'summary' && (
+            <div className="desk-actions">
+              <span className="desk-actions-note">All 5 sections complete</span>
+              <BigButton onClick={() => setStep('summary')}>Review the filled form →</BigButton>
             </div>
+          )}
+        </main>
+
+        <aside className="desk-preview">
+          <div className="desk-preview-title">The form, filling itself</div>
+          <p className="desk-preview-sub">What your doctor sees — updating as you answer.</p>
+          <div className="desk-preview-list">
+            {liveLines().map((r, i) => (
+              <div key={i} className={`desk-preview-row ${r.answered ? 'answered' : ''}`}>
+                <span className="desk-preview-label">{r.label}</span>
+                <span className="desk-preview-value">{r.value}</span>
+              </div>
+            ))}
           </div>
+          {allDone && step !== 'summary' && (
+            <div className="desk-preview-review">
+              <BigButton onClick={() => setStep('summary')}>Review & finish →</BigButton>
+            </div>
+          )}
+          <div className="desk-preview-foot">Saved on this device · DPDP: deleted on submit</div>
+        </aside>
+
+        {sheet}
+      </div>
+    )
+  }
+
+  const doneHome = (step === 'welcome' || step === 'done')
+
+  if (isDesktop && !doneHome) return renderDeskShell()
+
+  return (
+    <div className="app">
+      {!doneHome && (
+        <>
+          <ProgressBar progress={progress} />
+          <StepHeader
+            current={Math.max(1, screenIndex)}
+            total={6}
+            stepId={step}
+            onBack={goPrev}
+            onClose={() => setShowLeaveSheet(true)}
+          />
+          {SECTIONS.includes(step as any) && <div className="screen-label">{SECTION_TITLE[step as string]}</div>}
+        </>
+      )}
+      <main className="main">{renderScreen()}</main>
+      {!doneHome && (
+        <footer className="footer">
+          <span>{step === 'summary' ? 'Review' : `Section ${step} of 5`}</span>
+          <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
+        </footer>
+      )}
+      {SECTIONS.includes(step as any) && (
+        <div className="section-nav">
+          <BigButton variant="ghost" onClick={goPrev}>← Previous</BigButton>
+          <BigButton onClick={goNext} disabled={!sectionComplete(step as any)}>
+            {step === 'E' ? 'Review & finish' : sectionComplete(step as any) ? `Next — ${SECTION_TITLE[SECTIONS[SECTIONS.indexOf(step as any) + 1] as string]}` : 'Answer everything above'}
+          </BigButton>
         </div>
       )}
+      {sheet}
     </div>
   )
 }

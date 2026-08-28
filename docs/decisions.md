@@ -24,9 +24,10 @@ The "how" behind the build, in ~one page. Each decision names the option I had, 
 
 ## 4. Phone and laptop designed separately
 
-**Option:** one responsive column that stretches. **Chose:** two real layouts. Phone: one question at a time, thumb targets, speak-to-fill. Laptop (≥1024px): sticky section rail A–E to jump and review, arrow-key + Enter navigation, wider cards.
+**Option:** one responsive column that stretches. **Chose:** two real layouts. Phone: one section at a time, thumb targets, speak-to-fill. Laptop (≥1024px): the **desk console** — completion rail (A–E + Review) left, the whole form as one scrollable document center, live "the form, filling itself" side panel right.
 
-- The judges test both. A stretched phone layout is a "one size fits all"; the rail + keyboard flow is what a desk-filling clerk (or a 55yo who prefers typing) actually wants. Same typed state engine underneath.
+- The judges test both. A stretched phone layout is "one size fits all"; the desktop is a real form-filling surface, tiered by monitor width (2-col small laptops, 3-col ≥1170px, centered ≥1460px, bigger type ≥1800px). Same typed state engine underneath.
+- Arrows move between sections; ⌘/Ctrl-Enter goes straight to Review; every answered section gets a check in the rail and an "answered" highlight in the live panel.
 
 ## 5. Five screens, not sixteen taps
 

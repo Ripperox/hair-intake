@@ -220,27 +220,79 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .voiced-note{ font-size:12.5px; color:var(--muted); line-height:1.4 }
 .voiced-note.listening{ color:var(--accent); font-weight:600 }
 
-/* Desktop rail — separate laptop experience, no one-size-fits-all */
-.rail{ display:none }
+/* ——— Desktop: the desk console ———
+   Phone runs the 5-tap flow above. A laptop gets a real document, not a
+   stretched phone: completion rail · the whole form in one scroll ·
+   a live "the form, filling itself" panel. Layout tiers by monitor size. */
+.rail, .desk-form, .desk-preview{ display:none }
+
 @media (min-width:1024px){
-  .app.is-desktop{ max-width:1180px; flex-direction:row; gap:44px; padding:28px 32px; align-items:flex-start }
-  .app.is-desktop .desktop-body{ flex:1; max-width:640px; min-width:0 }
-  .rail{ display:block; width:280px; flex:none; position:sticky; top:28px; max-height:calc(100dvh - 56px); overflow:auto; padding-right:8px }
-  .rail-title{ font-size:16px; font-weight:800; color:var(--text); margin-bottom:2px }
-  .rail-sub{ font-size:12.5px; color:var(--muted); margin:0 0 18px; line-height:1.45 }
-  .rail-group{ display:flex; gap:12px; margin-bottom:16px }
-  .rail-letter{ width:26px; height:26px; border-radius:9px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:800; display:grid; place-items:center; flex:none; margin-top:2px }
-  .rail-items{ display:flex; flex-direction:column; gap:2px; flex:1 }
-  .rail-item{ appearance:none; text-align:left; border:0; background:transparent; padding:7px 10px; border-radius:10px; font-size:13.5px; font-weight:600; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:10px }
-  .rail-item:hover{ background:var(--bg-soft) }
-  .rail-item.current{ background:var(--accent-soft); color:var(--accent) }
-  .rail-item.done{ color:var(--text) }
-  .rail-dot{ width:8px; height:8px; border-radius:999px; background:var(--line-strong); flex:none }
-  .rail-item.done .rail-dot{ background:var(--accent) }
-  .rail-item.current .rail-dot{ background:var(--accent); box-shadow:0 0 0 3px rgba(26,107,84,.2) }
-  .rail-keys{ font-size:12px; color:var(--muted); border-top:1px solid var(--line); padding-top:14px; margin-top:6px }
-  .section-card{ padding:26px }
-  .btn-big{ font-size:15.5px }
+  .app.is-desktop{ max-width:none; margin:0; display:grid; grid-template-columns:200px minmax(0,1fr); align-items:stretch; background:var(--bg) }
+  .app.is-desktop .desk-form{ display:flex; flex-direction:column; min-width:0 }
+
+  /* Left: completion rail */
+  .rail{ display:flex; flex-direction:column; gap:6px; padding:22px 14px; border-right:1px solid var(--line); background:var(--bg-soft); box-sizing:border-box; position:sticky; top:0; height:100dvh; overflow:auto }
+  .rail-title{ font-size:15px; font-weight:800; color:var(--text); margin:2px 6px 0 }
+  .rail-sub{ font-size:12.5px; color:var(--muted); margin:2px 6px 14px; line-height:1.45 }
+  .rail-item{ appearance:none; text-align:left; border:1px solid transparent; background:transparent; width:100%; padding:9px 10px; border-radius:12px; font-size:13.5px; font-weight:650; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:10px }
+  .rail-item:hover{ background:white; border-color:var(--line) }
+  .rail-item.current{ background:white; border-color:var(--accent-line); color:var(--accent); box-shadow:var(--shadow-sm) }
+  .rail-letter{ width:24px; height:24px; border-radius:8px; background:var(--line); color:var(--text-2); font-size:12px; font-weight:800; display:grid; place-items:center; flex:none }
+  .rail-item.done .rail-letter{ background:var(--accent); color:white }
+  .rail-item.current .rail-letter{ background:var(--accent-soft); color:var(--accent) }
+  .rail-item-label{ flex:1; min-width:0 }
+  .rail-check{ width:18px; height:18px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:11px; font-weight:800; display:none; place-items:center; flex:none }
+  .rail-item.done .rail-check{ display:grid }
+  .rail-review{ margin-top:14px; border-color:var(--line); background:var(--card) }
+  .rail-review .rail-letter{ background:var(--text); color:white }
+  .rail-keys{ font-size:11.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin:auto 6px 0; line-height:1.55 }
+
+  /* Center: the whole form as one document */
+  .desk-form{ border-right:1px solid var(--line) }
+  .desk-header{ display:flex; align-items:center; gap:12px; padding:14px 22px; border-bottom:1px solid var(--line); background:var(--card); position:sticky; top:0; z-index:30 }
+  .desk-brand{ font-size:13px; font-weight:800; letter-spacing:.06em; color:var(--text) }
+  .desk-count{ font-size:12.5px; color:var(--muted); margin-left:auto }
+  .desk-count b{ color:var(--accent); font-size:15px }
+  .desk-sections{ max-width:720px; margin:0 auto; padding:22px 20px 40px; display:flex; flex-direction:column; gap:26px }
+  .desk-section{ scroll-margin-top:70px }
+  .desk-section .section-card{ padding:24px 26px }
+  .desk-actions{ position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 20px; background:linear-gradient(rgba(253,252,250,0), rgba(253,252,250,.97) 45%); z-index:20 }
+  .desk-actions .btn{ width:auto; min-width:230px; margin-top:0 }
+  .desk-actions-note{ font-size:13px; font-weight:700; color:var(--accent) }
+}
+
+/* Right: live "form filling itself" panel — appears once there's room (≥1170) */
+@media (min-width:1170px){
+  .app.is-desktop{ grid-template-columns:220px minmax(0,1fr) 260px }
+  .app.is-desktop .desk-preview{ display:flex; flex-direction:column; padding:22px 18px; box-sizing:border-box; position:sticky; top:0; height:100dvh; overflow:auto }
+  .desk-form{ border-right:0 }
+  .desk-preview-title{ font-size:15px; font-weight:800 }
+  .desk-preview-sub{ font-size:12.5px; color:var(--muted); margin:2px 0 16px; line-height:1.45 }
+  .desk-preview-list{ display:flex; flex-direction:column; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--card) }
+  .desk-preview-row{ display:flex; justify-content:space-between; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line); font-size:12.5px; line-height:1.42 }
+  .desk-preview-row:last-child{ border-bottom:none }
+  .desk-preview-label{ color:var(--muted); font-weight:600; flex:0 0 46% }
+  .desk-preview-value{ color:var(--faint); font-weight:650; text-align:right; flex:1; word-break:break-word }
+  .desk-preview-row.answered .desk-preview-label{ color:var(--text-2) }
+  .desk-preview-row.answered .desk-preview-value{ color:var(--text) }
+  .desk-preview-foot{ font-size:11.5px; color:var(--muted); margin-top:14px; line-height:1.55 }
+  .desk-preview-review{ margin-top:0 }
+  .desk-preview-review .btn{ margin-top:10px }
+}
+
+/* Mid/large monitors: center the doc, roomier rail */
+@media (min-width:1460px){
+  .app.is-desktop{ grid-template-columns:240px minmax(0,760px) 300px; justify-content:center }
+  .rail{ border-right:0 }
+}
+
+/* Very large / UHD: let the doc breathe and scale up type */
+@media (min-width:1800px){
+  .app.is-desktop{ grid-template-columns:260px minmax(0,880px) 320px }
+  .desk-sections{ max-width:840px }
+  .desk-section .section-card{ padding:30px 34px }
+  .section-title{ font-size:22px }
+  .q-title{ font-size:17px }
 }
 @media print{
   .progress-wrap, .step-header, .footer, .btn, .sheet-backdrop, .welcome-hinglish, .welcome-meta{ display:none !important }
