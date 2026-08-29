@@ -7,6 +7,33 @@ export type ProcedureEntry = { done: boolean; sessions: string | null; helped: b
 export const PRODUCT_ROW_KEYS = ['OTC/Medicated Shampoos','Hair Oils/Serums','Topical Minoxidil','Oral Minoxidil','Supplements'] as const
 export const PROCEDURE_ROW_KEYS = ['PRP/GFC/iPRF','Stem Cells/Exosomes','Hair Transplant','Other'] as const
 
+// Autocomplete hints for browser autofill
+export const AUTOCOMPLETE_HINTS: Record<string, string> = {
+  ageHairLossBegan: 'off', // custom field, no standard autocomplete
+  sex: 'sex',
+  duration: 'off',
+  familyHistory: 'off',
+  pattern: 'off',
+  diagnosedConditions: 'off',
+  menstrualCycle: 'off',
+  pregnancyRelated: 'off',
+  adultAcneOilySkin: 'off',
+  excessBodyFacialHair: 'off',
+  past6Months: 'off',
+  smoking: 'off',
+  smokingSeverity: 'off',
+  alcohol: 'off',
+  hardWater: 'off',
+  hairWashFrequency: 'off',
+  heatingTools: 'off',
+  salonTreatments: 'off',
+  salonTreatmentDetail: 'off',
+  pastTreatmentSideEffects: 'off',
+  pastTreatmentDescribe: 'off',
+  sampleType: 'off',
+  consent: 'off',
+}
+
 const PRODUCT_ROW_DEFAULTS: Record<typeof PRODUCT_ROW_KEYS[number], ProductEntry> = {
   'OTC/Medicated Shampoos': { used: false, duration: null, helped: null, sideEffects: null },
   'Hair Oils/Serums': { used: false, duration: null, helped: null, sideEffects: null },

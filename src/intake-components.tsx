@@ -1,8 +1,20 @@
 // Input components — each one tuned to the question type.
-// Big tap targets, mobile-first, accessible.
+// Big tap targets, mobile-first, accessible. Motion-enhanced.
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+// Spring configs for consistent feel
+const spring = { type: 'spring', stiffness: 320, damping: 24 } as const
+const springQuick = { type: 'spring', stiffness: 420, damping: 28 } as const
+const springSoft = { type: 'spring', stiffness: 260, damping: 22 } as const
+
+// Question block animation variants
+const questionVariants = {
+  initial: { opacity: 0, y: 16 },
+  enter: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const } },
+}
 
 export function BigButton({
   children,
@@ -24,14 +36,18 @@ export function BigButton({
     ghost: 'btn-ghost',
   }
   return (
-    <button
+    <motion.button
       className={`${base} ${vars[variant]} ${className}`}
       onClick={onClick}
       disabled={disabled}
       type="button"
+      whileTap={{ scale: disabled ? 1 : 0.97 }}
+      whileHover={{ scale: disabled ? 1 : 1.01 }}
+      transition={springQuick}
+      style={{ opacity: disabled ? 0.45 : 1 }}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }
 
@@ -41,24 +57,50 @@ export function OptionCard({
   onSelect,
   subLabel,
   disabled = false,
+  validationState = 'idle',
 }: {
   label: string
   selected: boolean
   onSelect: () => void
   subLabel?: string
   disabled?: boolean
+  validationState?: 'idle' | 'valid' | 'invalid'
 }) {
+  const isValid = validationState === 'valid'
+  const isInvalid = validationState === 'invalid'
   return (
-    <button
+    <motion.button
       type="button"
       className={`opt-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
       onClick={disabled ? undefined : onSelect}
       disabled={disabled}
+      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: disabled ? 1 : 1.015, boxShadow: '0 8px 30px rgba(26,26,26,.12)' }}
+      animate={{
+        borderColor: isInvalid ? 'var(--danger)' : selected ? 'var(--accent)' : isValid ? 'var(--accent)' : 'var(--line)',
+        background: selected ? 'var(--accent-soft)' : 'var(--card)',
+        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid || selected ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+      }}
+      transition={spring}
+      style={{ opacity: disabled ? 0.5 : 1 }}
     >
       <div className="opt-main">{label}</div>
       {subLabel && <div className="opt-sub">{subLabel}</div>}
-      {selected && <span className="opt-check" aria-hidden="true">✓</span>}
-    </button>
+      <AnimatePresence>
+        {selected && (
+          <motion.span
+            className="opt-check"
+            aria-hidden="true"
+            initial={{ scale: 0, rotate: -45 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 45 }}
+            transition={springQuick}
+          >
+            ✓
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
   )
 }
 
@@ -67,21 +109,46 @@ export function ChipOption({
   selected,
   onToggle,
   exclusive = false,
+  validationState = 'idle',
 }: {
   label: string
   selected: boolean
   onToggle: () => void
   exclusive?: boolean
+  validationState?: 'idle' | 'valid' | 'invalid'
 }) {
+  const isValid = validationState === 'valid'
+  const isInvalid = validationState === 'invalid'
   return (
-    <button
+    <motion.button
       type="button"
       className={`chip-opt ${selected ? 'selected' : ''} ${exclusive ? 'exclusive' : ''}`}
       onClick={onToggle}
+      whileTap={{ scale: 0.95 }}
+      animate={{
+        background: selected ? (exclusive ? 'var(--text)' : 'var(--chip-on-bg)') : 'var(--chip-bg)',
+        color: selected ? (exclusive ? 'white' : 'var(--chip-on)') : 'var(--text-2)',
+        borderColor: isInvalid ? 'var(--danger)' : selected ? (exclusive ? 'var(--text)' : 'var(--accent-line)') : isValid ? 'var(--accent)' : 'var(--line)',
+        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid ? '0 0 0 3px rgba(26,107,84,.12)' : selected ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+      }}
+      transition={spring}
     >
       {label}
-      {selected && <span className="chip-check" aria-hidden="true">✓</span>}
-    </button>
+      <AnimatePresence>
+        {selected && (
+          <motion.span
+            className="chip-check"
+            aria-hidden="true"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={springQuick}
+          >
+            ✓
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
   )
 }
 
@@ -90,28 +157,58 @@ export function YesNo({
   onChange,
   yesLabel = 'Yes',
   noLabel = 'No',
+  validationState = 'idle',
 }: {
   value: boolean | null
   onChange: (v: boolean) => void
   yesLabel?: string
   noLabel?: string
+  validationState?: 'idle' | 'valid' | 'invalid'
 }) {
+  const isValid = validationState === 'valid'
+  const isInvalid = validationState === 'invalid'
   return (
     <div className="yesno">
-      <button
+      <motion.button
         type="button"
-        className={`yn-btn ${value === true ? 'selected' : ''}`}
+        className="yn-btn"
         onClick={() => onChange(true)}
+        whileTap={{ scale: 0.97 }}
+        animate={{
+          background: value === true ? 'var(--accent)' : isInvalid ? 'var(--bg-soft)' : 'var(--card)',
+          color: value === true ? 'white' : 'var(--text-2)',
+          borderColor: value === true ? 'var(--accent)' : isInvalid ? 'var(--danger)' : isValid ? 'var(--accent)' : 'var(--line)',
+          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+        }}
+        transition={spring}
       >
         {yesLabel}
-      </button>
-      <button
+      </motion.button>
+      <motion.button
         type="button"
-        className={`yn-btn ${value === false ? 'selected' : ''}`}
+        className="yn-btn"
         onClick={() => onChange(false)}
+        whileTap={{ scale: 0.97 }}
+        animate={{
+          background: value === false ? 'var(--accent)' : isInvalid ? 'var(--bg-soft)' : 'var(--card)',
+          color: value === false ? 'white' : 'var(--text-2)',
+          borderColor: value === false ? 'var(--accent)' : isInvalid ? 'var(--danger)' : isValid ? 'var(--accent)' : 'var(--line)',
+          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+        }}
+        transition={spring}
       >
         {noLabel}
-      </button>
+      </motion.button>
+      {(isValid || isInvalid) && (
+        <motion.p
+          className={isValid ? 'field-ok' : 'field-error'}
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {isValid ? '✓ Looks good' : 'Please select one'}
+        </motion.p>
+      )}
     </div>
   )
 }
@@ -122,15 +219,21 @@ export function NumberStepper({
   min = 1,
   max = 100,
   label,
+  autoComplete = 'off',
+  validationState = 'idle',
+  validationMessage,
 }: {
   value: string
   onChange: (v: string) => void
   min?: number
   max?: number
   label?: string
+  autoComplete?: string
+  validationState?: 'idle' | 'valid' | 'invalid'
+  validationMessage?: string
 }) {
   const [local, setLocal] = useState(value)
-  useEffect(()=>{ setLocal(value) }, [value])
+  useEffect(() => { setLocal(value) }, [value])
   const num = parseInt(local, 10)
   const inc = () => {
     const n = isNaN(num) ? min : Math.min(max, num + 1)
@@ -149,11 +252,22 @@ export function NumberStepper({
       onChange(v)
     }
   }
+  const isValid = validationState === 'valid'
+  const isInvalid = validationState === 'invalid'
   return (
     <div className="stepper">
       {label && <div className="stepper-label">{label}</div>}
       <div className="stepper-row">
-        <button type="button" className="stepper-btn" onClick={dec} aria-label="Decrease">−</button>
+        <motion.button
+          type="button"
+          className="stepper-btn"
+          onClick={dec}
+          aria-label="Decrease"
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.1 }}
+        >
+          −
+        </motion.button>
         <input
           type="text"
           inputMode="numeric"
@@ -162,9 +276,41 @@ export function NumberStepper({
           onChange={onInput}
           className="stepper-input"
           aria-label={label || 'Number'}
+          autoComplete={autoComplete}
+          aria-invalid={isInvalid}
+          aria-describedby={isInvalid ? `${label}-error` : undefined}
+          style={{
+            borderColor: isValid ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
+            boxShadow: isValid ? '0 0 0 3px rgba(26,107,84,.14)' : isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : 'none',
+          }}
         />
-        <button type="button" className="stepper-btn" onClick={inc} aria-label="Increase">+</button>
+        <motion.button
+          type="button"
+          className="stepper-btn"
+          onClick={inc}
+          aria-label="Increase"
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.1 }}
+        >
+          +
+        </motion.button>
       </div>
+      {isInvalid && validationMessage && (
+        <motion.p
+          id={`${label}-error`}
+          className="field-error"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {validationMessage}
+        </motion.p>
+      )}
+      {isValid && (
+        <motion.p className="field-ok" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={springQuick}>
+          ✓ Looks good
+        </motion.p>
+      )}
     </div>
   )
 }
@@ -230,24 +376,44 @@ export function VoicedTextArea({
       <TextArea value={value} onChange={onChange} placeholder={placeholder} rows={rows} />
       <div className="voiced-bar">
         {supported ? (
-          <button
+          <motion.button
             type="button"
             className={`voice-btn ${listening ? 'listening' : ''}`}
             onClick={() => toggle(commit)}
             aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+            whileTap={{ scale: 0.97 }}
+            animate={{
+              background: listening ? 'var(--accent)' : 'var(--accent-soft)',
+              color: listening ? 'white' : 'var(--accent)',
+              borderColor: listening ? 'var(--accent)' : 'var(--accent-line)',
+            }}
+            transition={spring}
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <motion.svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              aria-hidden="true"
+              animate={{ rotate: listening ? 360 : 0 }}
+              transition={{ duration: listening ? 2 : 0, ease: 'linear', repeat: listening ? Infinity : 0 }}
+            >
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14.1 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.6z" fill="currentColor" />
-            </svg>
+            </motion.svg>
             {listening ? 'Stop' : 'Speak'}
-          </button>
+          </motion.button>
         ) : (
           <span className="voiced-note">Voice works on Android + desktop Chrome. Here, just type it.</span>
         )}
         {supported && (
-          <span className={`voiced-note ${listening ? 'listening' : ''}`}>
+          <motion.span
+            className={`voiced-note ${listening ? 'listening' : ''}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={springSoft}
+          >
             {listening ? 'Listening — speak naturally, Hinglish is fine' : 'Optional — speak it instead of typing'}
-          </span>
+          </motion.span>
         )}
       </div>
     </div>
@@ -278,9 +444,22 @@ export function TextArea({
 
 export function ProgressBar({ progress }: { progress: number }) {
   return (
-    <div className="progress-wrap" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-      <div className="progress-bar" style={{ width: `${progress}%` }} />
-    </div>
+    <motion.div
+      className="progress-wrap"
+      role="progressbar"
+      aria-valuenow={progress}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      initial={false}
+      animate={{ height: 4 }}
+    >
+      <motion.div
+        className="progress-bar"
+        initial={{ width: 0 }}
+        animate={{ width: `${progress}%` }}
+        transition={{ type: 'spring', stiffness: 280, damping: 26, duration: 0.8 }}
+      />
+    </motion.div>
   )
 }
 
@@ -292,21 +471,49 @@ export function StepHeader({ current, total, onBack, onClose }: {
   onClose?: () => void
 }) {
   return (
-    <header className="step-header">
+    <motion.header
+      className="step-header"
+      initial={{ y: -60, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={springSoft}
+    >
       {onBack && (
-        <button type="button" className="icon-btn" onClick={onBack} aria-label="Back">
+        <motion.button
+          type="button"
+          className="icon-btn"
+          onClick={onBack}
+          aria-label="Back"
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ rotate: -15 }}
+        >
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/></svg>
-        </button>
+        </motion.button>
       )}
       <div className="step-counter">
-        <span className="step-num">{current}</span> <span className="step-div">of</span> <span className="step-total">{total}</span>
+        <motion.span
+          className="step-num"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springSoft, delay: 0.1 }}
+        >
+          {current}
+        </motion.span>
+        <span className="step-div">of</span>
+        <span className="step-total">{total}</span>
       </div>
       {onClose && (
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
+        <motion.button
+          type="button"
+          className="icon-btn"
+          onClick={onClose}
+          aria-label="Close"
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ rotate: 90 }}
+        >
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
-        </button>
+        </motion.button>
       )}
-    </header>
+    </motion.header>
   )
 }
 
@@ -318,14 +525,172 @@ export function SectionCard({ title, subtitle, children }: {
   return (
     <section className="section-card">
       <div className="section-head">
-        <h2 className="section-title">{title}</h2>
-        {subtitle && <p className="section-sub">{subtitle}</p>}
+        <motion.h2
+          className="section-title"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={springSoft}
+        >
+          {title}
+        </motion.h2>
+        {subtitle && (
+          <motion.p
+            className="section-sub"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springSoft, delay: 0.05 }}
+          >
+            {subtitle}
+          </motion.p>
+        )}
       </div>
-      {children}
+      <motion.div
+        initial="initial"
+        animate="enter"
+        variants={{ initial: {}, enter: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } } }}
+      >
+        {typeof children === 'object' && children !== null && 'props' in children && Array.isArray((children as any).props?.children)
+          ? (children as any).props.children.map((child: any, i: number) =>
+              React.cloneElement(child, { key: child.key ?? i })
+            )
+          : children}
+      </motion.div>
     </section>
   )
 }
 
 export function Hint({ children }: { children: React.ReactNode }) {
   return <p className="hint">{children}</p>
+}
+
+// Staggered question block wrapper
+export function QuestionBlock({ number, title, subtitle, children, index = 0 }: {
+  number?: string
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+  index?: number
+}) {
+  return (
+    <motion.div
+      className="q-block"
+      variants={questionVariants}
+      custom={index}
+    >
+      <motion.div
+        className="q-head"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
+      >
+        {number && <motion.span className="q-num" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springQuick}>{number}</motion.span>}
+        <div>
+          <div className="q-title">{title}</div>
+          {subtitle && <div className="q-sub">{subtitle}</div>}
+        </div>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] as const, delay: 0.05 }}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// Smooth collapse/expand for conditional content
+export function Collapsible({ isOpen, children, className = '' }: {
+  isOpen: boolean
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className={className}
+          initial={{ opacity: 0, height: 0, y: -10 }}
+          animate={{ opacity: 1, height: 'auto', y: 0 }}
+          exit={{ opacity: 0, height: 0, y: -10 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] as const }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// Modal/Sheet backdrop with spring
+export function ModalBackdrop({ isOpen, onClose, children }: {
+  isOpen: boolean
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            className="sheet-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            transition={{ duration: 0.2 }}
+          />
+          <motion.div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0, y: 40, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+            transition={spring}
+            onClick={e => e.stopPropagation()}
+          >
+            {children}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// Detail modal for product/procedure rows
+export function DetailModal({ isOpen, onClose, children }: {
+  isOpen: boolean
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            className="detail-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            transition={{ duration: 0.15 }}
+          />
+          <motion.div
+            className="detail-card"
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0, y: 30, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.94 }}
+            transition={spring}
+            onClick={e => e.stopPropagation()}
+          >
+            {children}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
 }

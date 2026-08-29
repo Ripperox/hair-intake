@@ -5,8 +5,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Answers, ProductEntry, ProcedureEntry } from './schema'
-import { normalizeAnswers, EMPTY_ANSWERS, PRODUCT_ROW_KEYS, PROCEDURE_ROW_KEYS } from './schema'
+import { normalizeAnswers, EMPTY_ANSWERS, PRODUCT_ROW_KEYS, PROCEDURE_ROW_KEYS, AUTOCOMPLETE_HINTS } from './schema'
 import { useIsDesktop } from './use-is-desktop'
 import {
   BigButton,
@@ -20,6 +21,10 @@ import {
   SectionCard,
   Hint,
 } from './intake-components'
+import {
+  validateSectionA, validateSectionB, validateSectionC, validateSectionD, validateSectionE,
+  validateAge,
+} from './validation'
 
 type Screen = 'welcome' | 'A' | 'B' | 'C' | 'D' | 'E' | 'summary' | 'done'
 const SECTIONS: Screen[] = ['A', 'B', 'C', 'D', 'E']
@@ -107,9 +112,42 @@ export default function App() {
   const sectionIdx = SECTIONS.indexOf(step as any)
   const progress = sectionIdx >= 0 ? Math.round((sectionIdx / SECTIONS.length) * 100) : step === 'summary' ? 100 : 0
 
+  // Validation state for positive validation (show success when correct)
+  const validationA = validateSectionA({
+    ageHairLossBegan: answers.ageHairLossBegan,
+    duration: answers.duration,
+    familyHistory: answers.familyHistory,
+    pattern: answers.pattern,
+  })
+  const validationB = validateSectionB({
+    diagnosedConditions: answers.diagnosedConditions,
+    adultAcneOilySkin: answers.adultAcneOilySkin,
+    excessBodyFacialHair: answers.excessBodyFacialHair,
+    sex: answers.sex,
+    menstrualCycle: answers.menstrualCycle,
+    pregnancyRelated: answers.pregnancyRelated,
+  })
+  const validationC = validateSectionC({
+    smoking: answers.smoking,
+    alcohol: answers.alcohol,
+    hardWater: answers.hardWater,
+    hairWashFrequency: answers.hairWashFrequency,
+    heatingTools: answers.heatingTools,
+    salonTreatments: answers.salonTreatments,
+  })
+  const validationD = validateSectionD({
+    pastTreatmentSideEffects: answers.pastTreatmentSideEffects,
+  })
+  const validationE = validateSectionE({
+    sampleType: answers.sampleType,
+    consent: answers.consent,
+  })
+
+  const ageValidation = validateAge(answers.ageHairLossBegan)
+
   const validAge = (): boolean => {
     const n = parseInt(answers.ageHairLossBegan, 10)
-    return !!answers.ageHairLossBegan && !isNaN(n) && n >= 10 && n <= 80
+    return !!answers.ageHairLossBegan && !isNaN(n) && n >= 10 && n <= 100
   }
 
   const habitsCompleted = (): boolean =>
@@ -118,20 +156,12 @@ export default function App() {
 
   const sectionComplete = (s: Screen): boolean => {
     switch (s) {
-      case 'A':
-        return validAge() && !!answers.duration && answers.familyHistory.length > 0 && answers.pattern.length > 0
-      case 'B':
-        return answers.diagnosedConditions.length > 0 &&
-          answers.adultAcneOilySkin !== null && answers.excessBodyFacialHair !== null &&
-          (answers.sex === 'male' || (!!answers.menstrualCycle && !!answers.pregnancyRelated))
-      case 'C':
-        return habitsCompleted()
-      case 'D':
-        return answers.pastTreatmentSideEffects !== null
-      case 'E':
-        return !!answers.sampleType && !!answers.consent
-      default:
-        return true
+      case 'A': return validationA.isComplete
+      case 'B': return validationB.isComplete
+      case 'C': return validationC.isComplete
+      case 'D': return validationD.isComplete
+      case 'E': return validationE.isComplete
+      default: return true
     }
   }
 
@@ -203,17 +233,17 @@ export default function App() {
             {renderQuestion('', 'Your context', 'Some questions differ for women — one tap helps us ask the right ones.', (
               <div className="chip-grid">
                 {(['Male','Female','Prefer not to say'] as const).map(opt => (
-                  <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => update({ sex: opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other' })} />
+                  <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => update({ sex: opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other' })} validationState={validationA.fields.sex?.state || 'idle'} />
                 ))}
               </div>
             ))}
             {renderQuestion('1', 'When did you first notice hair loss?', 'You age when it started — best guess is fine.', (
-              <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={80} />
+              <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={100} autoComplete={AUTOCOMPLETE_HINTS.ageHairLossBegan} validationState={ageValidation.state} validationMessage={ageValidation.message} />
             ))}
             {renderQuestion('2', 'How long has it been?', 'Since you first noticed.', (
               <div className="opt-grid">
                 {['Less than 6 months','6-12 months','Over a year'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.duration === opt} onSelect={() => update({ duration: opt })} />
+                  <OptionCard key={opt} label={opt} selected={answers.duration === opt} onSelect={() => update({ duration: opt })} validationState={validationA.fields.duration?.state || 'idle'} />
                 ))}
               </div>
             ))}
@@ -233,10 +263,10 @@ export default function App() {
                           update({ familyHistory: [...answers.familyHistory.filter(x => x !== 'No known family history'), opt] })
                         }
                       }}
+                      validationState={validationA.fields.familyHistory?.state || 'idle'}
                     />
                   ))}
                 </div>
-                {answers.familyHistory.length === 0 && <p className="field-error">Pick at least one</p>}
               </>
             ))}
             {renderQuestion('4', 'What pattern do you see?', 'Select all that match you.', (
@@ -254,10 +284,9 @@ export default function App() {
                   {['Receding hairline','Thinning at crown','Widening part line','Diffuse thinning','Patchy loss','Sudden excessive shedding'].map(opt => (
                     <ChipOption key={opt} label={opt} selected={answers.pattern.includes(opt)} onToggle={() => {
                       update({ pattern: answers.pattern.includes(opt) ? answers.pattern.filter(x => x !== opt) : [...answers.pattern, opt] })
-                    }} />
+                    }} validationState={validationA.fields.pattern?.state || 'idle'} />
                   ))}
                 </div>
-                {answers.pattern.length === 0 && <p className="field-error">Pick at least one</p>}
               </>
             ))}
           </SectionCard>
@@ -280,23 +309,23 @@ export default function App() {
                           update({ diagnosedConditions: [...answers.diagnosedConditions.filter(x => x !== 'None'), opt] })
                         }
                       }}
+                      validationState={validationB.fields.diagnosedConditions?.state || 'idle'}
                     />
                   ))}
                 </div>
-                {answers.diagnosedConditions.length === 0 && <p className="field-error">Pick at least one — tap None if nothing applies</p>}
               </>
             ))}
             {answers.sex === 'female' && renderQuestion('6', 'Menstrual cycle', 'For your doctor to interpret the hair picture correctly.', (
               <div className="opt-grid">
                 {['Regular','Irregular','Menopausal','Not applicable'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} />
+                  <OptionCard key={opt} label={opt} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={validationB.fields.menstrualCycle?.state || 'idle'} />
                 ))}
               </div>
             ))}
             {answers.sex === 'female' && renderQuestion('7', 'Pregnancy-related hair loss?', 'If applicable.', (
               <div className="opt-grid">
                 {['Currently pregnant','Postpartum <1 year','Not applicable'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} />
+                  <OptionCard key={opt} label={opt} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={validationB.fields.pregnancyRelated?.state || 'idle'} />
                 ))}
               </div>
             ))}
@@ -305,19 +334,19 @@ export default function App() {
                 <div className="q-head"><span className="q-num" /><div><div className="q-title">Women-only questions</div><div className="q-sub">Answered only if they apply — Not applicable is fine.</div></div></div>
                 <div className="opt-grid">
                   {['Regular','Irregular','Menopausal','Not applicable'].map(opt => (
-                    <OptionCard key={opt} label={`Cycle · ${opt}`} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} />
+                    <OptionCard key={opt} label={`Cycle · ${opt}`} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={validationB.fields.menstrualCycle?.state || 'idle'} />
                   ))}
                   {['Currently pregnant','Postpartum <1 year','Not applicable'].map(opt => (
-                    <OptionCard key={opt} label={`Pregnancy · ${opt}`} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} />
+                    <OptionCard key={opt} label={`Pregnancy · ${opt}`} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={validationB.fields.pregnancyRelated?.state || 'idle'} />
                   ))}
                 </div>
               </div>
             )}
             {renderQuestion('8', 'Acne or oily skin in adulthood?', 'After your teenage years — hormonal clues your doctor uses.', (
-              <YesNo value={answers.adultAcneOilySkin} onChange={v => update({ adultAcneOilySkin: v })} />
+              <YesNo value={answers.adultAcneOilySkin} onChange={v => update({ adultAcneOilySkin: v })} validationState={validationB.fields.adultAcneOilySkin?.state || 'idle'} />
             ))}
             {renderQuestion('9', 'Excess body or facial hair growth?', 'A gentle hormonal signal — only your doctor sees this.', (
-              <YesNo value={answers.excessBodyFacialHair} onChange={v => update({ excessBodyFacialHair: v })} />
+              <YesNo value={answers.excessBodyFacialHair} onChange={v => update({ excessBodyFacialHair: v })} validationState={validationB.fields.excessBodyFacialHair?.state || 'idle'} />
             ))}
           </SectionCard>
         )
@@ -340,7 +369,7 @@ export default function App() {
             {renderQuestion('11', 'Daily habits', 'Quick yes / no for each. Details only if needed.', (
               <div className="habit-list">
                 <div className="habit-group-label">Lifestyle</div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Smoking</span><YesNo value={answers.smoking} onChange={v => update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null })} /></div>
+                <div className="habit-row"><div className="habit-main"><span className="habit-label">Smoking</span><YesNo value={answers.smoking} onChange={v => update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null })} validationState={validationC.fields.smoking?.state || 'idle'} /></div>
                   {answers.smoking && (
                     <div className="habit-followup">
                       <div className="followup-label">How many per day?</div>
@@ -352,22 +381,22 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Alcohol</span><YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} /></div></div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Hard water for hair wash</span><YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} /></div></div>
+                <div className="habit-row"><div className="habit-main"><span className="habit-label">Alcohol</span><YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} validationState={validationC.fields.alcohol?.state || 'idle'} /></div></div>
+                <div className="habit-row"><div className="habit-main"><span className="habit-label">Hard water for hair wash</span><YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} validationState={validationC.fields.hardWater?.state || 'idle'} /></div></div>
                 <div className="habit-group-label" style={{ marginTop: 14 }}>Hair care</div>
                 <div className="habit-row">
                   <div className="habit-main" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <span className="habit-label" style={{ marginBottom: 8 }}>Hair wash frequency</span>
                     <div className="opt-grid small">
                       {['Daily','Alternate Days','Weekly'].map(opt => (
-                        <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} />
+                        <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} validationState={validationC.fields.hairWashFrequency?.state || 'idle'} />
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Heating tools / styling chemicals</span><YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} /></div></div>
+                <div className="habit-row"><div className="habit-main"><span className="habit-label">Heating tools / styling chemicals</span><YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} validationState={validationC.fields.heatingTools?.state || 'idle'} /></div></div>
                 <div className="habit-row">
-                  <div className="habit-main"><span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span><YesNo value={answers.salonTreatments} onChange={v => update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null })} /></div>
+                  <div className="habit-main"><span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span><YesNo value={answers.salonTreatments} onChange={v => update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null })} validationState={validationC.fields.salonTreatments?.state || 'idle'} /></div>
                   {answers.salonTreatments && (
                     <div className="habit-followup">
                       <VoicedTextArea value={answers.salonTreatmentDetail || ''} onChange={v => update({ salonTreatmentDetail: v })} placeholder="Which ones? e.g. Keratin 2 months ago" rows={2} />
@@ -442,7 +471,7 @@ export default function App() {
             ))}
             {renderQuestion('14', 'Side effects or poor response to past treatment?', 'If yes, a few words helps your doctor.', (
               <>
-                <YesNo value={answers.pastTreatmentSideEffects} onChange={v => update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null })} />
+                <YesNo value={answers.pastTreatmentSideEffects} onChange={v => update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null })} validationState={validationD.fields.pastTreatmentSideEffects?.state || 'idle'} />
                 {answers.pastTreatmentSideEffects && (
                   <div style={{ marginTop: 16 }}>
                     <VoicedTextArea value={answers.pastTreatmentDescribe || ''} onChange={v => update({ pastTreatmentDescribe: v })} placeholder="What happened? e.g. Itchy scalp with minoxidil" rows={3} />
@@ -459,7 +488,7 @@ export default function App() {
             {renderQuestion('15', 'Preferred sample for genetic analysis', 'Both work. Saliva is easiest — just spit in a tube.', (
               <div className="opt-grid">
                 {[{ id: 'Saliva', label: 'Saliva', sub: 'No needle' },{ id: 'Blood', label: 'Blood', sub: 'More DNA' },{ id: 'Either', label: 'Either', sub: 'Doctor can decide' }].map(opt => (
-                  <OptionCard key={opt.id} label={opt.label} subLabel={opt.sub} selected={answers.sampleType === opt.id} onSelect={() => update({ sampleType: opt.id })} />
+                  <OptionCard key={opt.id} label={opt.label} subLabel={opt.sub} selected={answers.sampleType === opt.id} onSelect={() => update({ sampleType: opt.id })} validationState={validationE.fields.sampleType?.state || 'idle'} />
                 ))}
               </div>
             ))}
@@ -758,6 +787,13 @@ export default function App() {
 
   if (isDesktop && !doneHome) return renderDeskShell()
 
+  // Screen transition variants
+  const screenVariants = {
+    initial: { opacity: 0, x: 30, filter: 'blur(4px)' },
+    enter: { opacity: 1, x: 0, filter: 'blur(0px)' },
+    exit: { opacity: 0, x: -30, filter: 'blur(4px)' },
+  }
+
   return (
     <div className="app">
       {!doneHome && (
@@ -773,7 +809,20 @@ export default function App() {
           {SECTIONS.includes(step as any) && <div className="screen-label">{SECTION_TITLE[step as string]}</div>}
         </>
       )}
-      <main className="main">{renderScreen()}</main>
+      <main className="main">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial="initial"
+            animate="enter"
+            exit="exit"
+            variants={screenVariants}
+            className="screen-wrapper"
+          >
+            {renderScreen()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
       {!doneHome && (
         <footer className="footer">
           <span>{step === 'summary' ? 'Review' : `Section ${step} of 5`}</span>
@@ -781,12 +830,18 @@ export default function App() {
         </footer>
       )}
       {SECTIONS.includes(step as any) && (
-        <div className="section-nav">
+        <motion.div
+          className="section-nav"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] as const }}
+        >
           <BigButton variant="ghost" onClick={goPrev}>← Previous</BigButton>
           <BigButton onClick={goNext} disabled={!sectionComplete(step as any)}>
             {step === 'E' ? 'Review & finish' : sectionComplete(step as any) ? `Next — ${SECTION_TITLE[SECTIONS[SECTIONS.indexOf(step as any) + 1] as string]}` : 'Answer everything above'}
           </BigButton>
-        </div>
+        </motion.div>
       )}
       {sheet}
       {detailModal}
