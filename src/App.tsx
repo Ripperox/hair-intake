@@ -296,7 +296,7 @@ export default function App() {
     switch (s) {
       case 'A':
         return (
-          <SectionCard title="Personal & Family History" subtitle="Four quick questions. Best guess is fine.">
+          <SectionCard title="Personal & Family History">
             {renderQuestion('', 'Your context', 'Some questions apply only to women. This helps us ask the right ones.', (
               <div className="chip-grid">
                 {(['Male','Female','Prefer not to say'] as const).map(opt => (
@@ -357,7 +357,7 @@ export default function App() {
 
       case 'B':
         return (
-          <SectionCard title="Hormones & Health" subtitle="Mostly yes or no. The fastest section.">
+          <SectionCard title="Hormones & Health">
             {renderQuestion('5', 'Any diagnosed conditions?', 'This decides which tests make sense. It stays inside the clinic.', (
               <>
                 <div className="chip-grid">
@@ -416,7 +416,7 @@ export default function App() {
 
       case 'C':
         return (
-          <SectionCard title="Lifestyle & Triggers" subtitle="Your routine, in about 30 seconds.">
+          <SectionCard title="Lifestyle & Triggers">
             {renderQuestion('10', 'In the last 6 months, any of these?', 'Select any that happened. None is a fine answer.', (
               <>
                 <div className="chip-grid">
@@ -508,7 +508,7 @@ export default function App() {
 
       case 'D':
         return (
-          <SectionCard title="Treatments & Products" subtitle="Never tried anything? One tap skips the lot.">
+          <SectionCard title="Treatments & Products">
             {renderQuestion('12', 'Products you have tried', 'Only tap Used where it applies.', (
               <>
                 <button type="button" className="fast-path" onClick={() => {
@@ -610,7 +610,7 @@ export default function App() {
 
       case 'E':
         return (
-          <SectionCard title="Sample & Consent" subtitle="The last 30 seconds.">
+          <SectionCard title="Sample & Consent">
             {renderQuestion('15', 'Preferred sample for genetic analysis', 'Both work. Saliva is the easy one.', (
               <div className="opt-grid">
                 {[{ id: 'Saliva', label: 'Saliva', sub: 'No needle' },{ id: 'Blood', label: 'Blood', sub: 'More DNA' },{ id: 'Either', label: 'Either', sub: 'Doctor can decide' }].map(opt => (
