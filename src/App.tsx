@@ -79,6 +79,11 @@ export default function App() {
   // on, unanswered fields in that section show as needing attention.
   const [nudged, setNudged] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState(false)
+  // Q14 can be answered by Q12/Q13. Track whether the patient has overruled us,
+  // and which earlier answer the derived value came from.
+  const [q14Manual, setQ14Manual] = useState(false)
+  const [q14FromSkip, setQ14FromSkip] = useState(false)
+  const q14Auto = useRef(false)
   const isDesktop = useIsDesktop()
 
   useEffect(() => {
@@ -100,6 +105,21 @@ export default function App() {
   const update = useCallback((patch: Partial<Answers>) => {
     setAnswers(prev => ({ ...prev, ...patch }))
   }, [])
+
+  // A product marked with side effects *is* an answer to Q14 — the same sentence,
+  // already given. Reflect it; never let it survive the answer it came from.
+  const sideEffectRow = PRODUCT_ROW_KEYS.find(k => answers.products[k]?.used && answers.products[k]?.sideEffects === true)
+
+  useEffect(() => {
+    if (q14Manual) return
+    if (sideEffectRow) {
+      q14Auto.current = true
+      setAnswers(prev => prev.pastTreatmentSideEffects === true ? prev : { ...prev, pastTreatmentSideEffects: true })
+    } else if (q14Auto.current) {
+      q14Auto.current = false
+      setAnswers(prev => ({ ...prev, pastTreatmentSideEffects: null, pastTreatmentDescribe: null }))
+    }
+  }, [sideEffectRow, q14Manual])
 
   const editProduct = useCallback((row: string, patch: Partial<ProductEntry>) => {
     setAnswers(prev => ({ ...prev, products: { ...prev.products, [row]: { ...prev.products[row], ...patch } } }))
@@ -141,6 +161,7 @@ export default function App() {
     procedures: answers.procedures,
     pastTreatmentSideEffects: answers.pastTreatmentSideEffects,
     pastTreatmentDescribe: answers.pastTreatmentDescribe,
+    requireDescribe: !sideEffectRow || q14Manual,
   })
   const validationE = validateSectionE({
     sampleType: answers.sampleType,
@@ -279,7 +300,12 @@ export default function App() {
             {renderQuestion('', 'Your context', 'Some questions apply only to women. This helps us ask the right ones.', (
               <div className="chip-grid">
                 {(['Male','Female','Prefer not to say'] as const).map(opt => (
-                  <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => update({ sex: opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other' })} validationState={vstate('A', 'sex')} />
+                  <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => {
+                      const sex = opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other'
+                      update(sex === 'male'
+                        ? { sex, diagnosedConditions: answers.diagnosedConditions.filter(c => c !== 'PCOS/PCOD') }
+                        : { sex })
+                    }} validationState={vstate('A', 'sex')} />
                 ))}
               </div>
             ))}
@@ -335,7 +361,7 @@ export default function App() {
             {renderQuestion('5', 'Any diagnosed conditions?', 'This decides which tests make sense. It stays inside the clinic.', (
               <>
                 <div className="chip-grid">
-                  {['PCOS/PCOD','Thyroid disorder','Diabetes','Autoimmune disease','Anemia','None'].map(opt => (
+                  {['PCOS/PCOD','Thyroid disorder','Diabetes','Autoimmune disease','Anemia','None'].filter(opt => !(opt === 'PCOS/PCOD' && answers.sex === 'male')).map(opt => (
                     <ChipOption key={opt} label={opt} selected={answers.diagnosedConditions.includes(opt)} exclusive={opt === 'None'}
                       onToggle={() => {
                         if (answers.diagnosedConditions.includes(opt)) {
@@ -488,7 +514,11 @@ export default function App() {
                 <button type="button" className="fast-path" onClick={() => {
                   const next: Answers['products'] = {}
                   for (const k of PRODUCT_ROW_KEYS) next[k] = { used: false, duration: null, helped: null, sideEffects: null }
-                  update({ products: next })
+                  const noProcedures = PROCEDURE_ROW_KEYS.every(k => !answers.procedures[k].done)
+                  if (noProcedures && !q14Manual) {
+                    update({ products: next, pastTreatmentSideEffects: false, pastTreatmentDescribe: null })
+                    setQ14FromSkip(true)
+                  } else update({ products: next })
                   goToQuestion(13)
                 }}>Never used any → skip</button>
                 <div className="table-grid" style={{ marginTop: 12 }}>
@@ -522,7 +552,11 @@ export default function App() {
                 <button type="button" className="fast-path" onClick={() => {
                   const next: Answers['procedures'] = {}
                   for (const k of PROCEDURE_ROW_KEYS) next[k] = { done: false, sessions: null, helped: null }
-                  update({ procedures: next })
+                  const noProducts = PRODUCT_ROW_KEYS.every(k => !answers.products[k].used)
+                  if (noProducts && !q14Manual) {
+                    update({ procedures: next, pastTreatmentSideEffects: false, pastTreatmentDescribe: null })
+                    setQ14FromSkip(true)
+                  } else update({ procedures: next })
                   goToQuestion(14)
                 }}>None done → skip</button>
                 <div className="table-grid" style={{ marginTop: 12 }}>
@@ -553,7 +587,17 @@ export default function App() {
             ))}
             {renderQuestion('14', 'Side effects or poor response to past treatment?', 'If yes, a few words is enough.', (
               <>
-                <YesNo value={answers.pastTreatmentSideEffects} onChange={v => update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null })} validationState={vstate('D', 'pastTreatmentSideEffects')} />
+                {!q14Manual && sideEffectRow && answers.pastTreatmentSideEffects === true && (
+                  <p className="infer-note">
+                    You marked side effects with <b>{sideEffectRow}</b>, so this is already answered. Not right? Tap No.
+                  </p>
+                )}
+                {!q14Manual && q14FromSkip && answers.pastTreatmentSideEffects === false && (
+                  <p className="infer-note">
+                    No products, no procedures — so there&apos;s nothing to have reacted to. We&apos;ve marked this <b>No</b>.
+                  </p>
+                )}
+                <YesNo value={answers.pastTreatmentSideEffects} onChange={v => { setQ14Manual(true); setQ14FromSkip(false); update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null }) }} validationState={vstate('D', 'pastTreatmentSideEffects')} />
                 {answers.pastTreatmentSideEffects && (
                   <div style={{ marginTop: 16 }}>
                     <VoicedTextArea value={answers.pastTreatmentDescribe || ''} onChange={v => update({ pastTreatmentDescribe: v })} placeholder="What happened? e.g. Itchy scalp with minoxidil" rows={3} invalid={vstate('D', 'pastTreatmentDescribe') === 'invalid'} />
@@ -723,6 +767,9 @@ export default function App() {
             <BigButton variant="ghost" onClick={() => {
               setNudged({})
               setCopied(false)
+              setQ14Manual(false)
+              setQ14FromSkip(false)
+              q14Auto.current = false
               setAnswers(freshAnswers())
               setStep('welcome')
               try { localStorage.removeItem('hair-intake-answers') } catch {}

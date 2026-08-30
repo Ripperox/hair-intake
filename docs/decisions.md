@@ -16,12 +16,13 @@ The "how" behind the build, in ~one page. Each decision names the option I had, 
 - Voice on a one-tap question is slower than the tap. Voice on an open "describe it" question is faster and friendlier than typing on a phone.
 - Trade-off accepted: iOS Safari lacks Web Speech recognition, so the mic degrades to a hint + typing there. A serverless whisper fallback is the one-week improvement, not the v1.
 
-## 3. No pre-filled medical answers
+## 3. Inference only where the answer is already given
 
-**Option:** infer likely answers from earlier ones and ask the patient to confirm. **Chose:** cut it.
+**Option:** infer likely answers from earlier ones, or ask everything cold. **Chose:** map every relationship between the 16 questions first (`docs/inference-map.md`), then build only the ones that are entailments rather than correlations.
 
-- An earlier build pre-marked the two most common patterns on Q4 once onset ≤ 25 and "father had hair loss" were both in, labelled and removable. It demoed well, and it went: Q4 is a diagnostic signal the doctor reads, and a pre-marked chip the patient skims past becomes an answer nobody actually gave.
-- Inference is still used everywhere it can't be wrong: Q6/Q7 are skipped by sex context and recorded as "Not applicable", one-tap skips clear whole tables, and follow-ups only appear where the parent answer demands them. The rule is to save taps, never to supply the answer.
+- **Built:** Q12's "side effects = yes" *is* the answer to Q14 — the same sentence, already given — so Q14 arrives answered, naming the product it came from. Both one-tap skips together mean there was no past treatment, so Q14 is No. And a man is never shown PCOS in Q5.
+- **Cut:** Q4 used to pre-mark the two likeliest patterns from onset age + father's history. It demoed well and it went — pattern is the doctor's diagnostic signal, and a pre-marked chip the patient skims past becomes an answer nobody gave. Same reason the other nine correlations in the map stayed rejected: irregular cycles are a *symptom*, and Q5 asks what a doctor *diagnosed*.
+- The rule that separates them: **infer what the patient has already told you; never infer what the doctor is there to read.** Every derived answer states its source and is one tap to overrule.
 
 ## 4. Phone and laptop designed separately
 

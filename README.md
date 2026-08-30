@@ -36,7 +36,7 @@ No env vars. No API keys in repo. Works offline after load.
 | **Conditional questions** | Built (sex gate) | Sex is one chip at the top of Section A. Female-only Q6/Q7 appear only for female; for "prefer not to say" they surface with "Not applicable." Plumbing the field into the section, not a step, keeps the calm. |
 | **Per-question input** | Built (`intake-components.tsx`) | Number stepper (age), single cards (duration/sample), multi chips with exclusive "None" (family/conditions), Yes/No, table-as-cards (habits/products/procedures). Each question gets the lightest control that answers it — not one chat box for everything. |
 | **Speech, only where speech wins** | Built, Web Speech API | The two questions that are naturally spoken (describe salon treatments, describe side effects) get a Speak button → transcript → field. Client-side, free, Hinglish-tolerant (`en-IN`), no key. Advisably, "some are speech" — the tap questions stay taps. Voice notes: iOS Safari lacks recognition, so it degrades to a hint + typing. |
-| **No pre-filled medical answers** | Deliberately cut | A build of this had Q4 pre-mark the two likeliest patterns once onset ≤25 and the father's history were both in. It demoed well and I removed it: a pattern the patient never chose is the doctor's diagnostic signal, and a pre-marked chip that goes unread becomes a wrong answer nobody typed. Inference is used where it costs nothing to be wrong — skipping Q6/Q7 by sex, one-tap skips, "Not applicable" in the output — never to put words in the patient's mouth. |
+| **Inference, but only from entailment** | Built + one deliberately cut | I mapped all 16 questions for relationships (`docs/inference-map.md`). Only three survive: Q12's "side effects" answers Q14 outright, both skips together answer Q14 as No, and a man is never offered PCOS in Q5. Each derived answer says where it came from and can be overruled in one tap. What I cut: Q4 used to pre-mark the likeliest patterns from onset age + father's history. It demoed well and it's gone — pattern is the doctor's diagnostic signal, and a pre-marked chip nobody reads is an answer the patient never gave. The rule: **infer what the patient already told you, never what the doctor is there to read.** |
 | **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one section at a time, thumb-sized, sticky Next. Laptop gets a **desk console** — not a stretched phone: a sticky completion rail (A–E + Review) on the left, the whole 5-section form as one scrollable document in the middle (like the doctor's printed page), and a live "the form, filling itself" panel on the right that updates as answers land. Arrow keys move between sections, ⌘/Ctrl-Enter jumps to Review. Layout tiers by monitor width: 2-column on small laptops, 3-column from 1170px, centered + roomier from 1460px, and larger type/spacing on UHD (≥1800px). Same state engine, two genuinely different UIs. |
 | **Sex question design** | Built, one chip in Section A | Male / Female / Prefer not to say. Female-only questions then gated — asked once, warmly, no extra screen. |
 | **Styling** | Built, no UI library | GenoRoot red + warm paper, Fraunces display serif over system UI text, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and the feel precise. |
@@ -65,7 +65,7 @@ Every question gets the control that answers it fastest. No shared default input
 | 1 | Age hair loss began | A · Personal & family | **Typed number ± stepper** | Just "28" + Enter. Faster and more precise than a slider or cards. |
 | 2 | How long | A | **3 cards, one tap** | Just "Less than 6 months" — zero thought. |
 | 3 | Family history | A | **Chips, exclusive "None"** | Pick several relatives; "No known family history" clears the rest. |
-| 4 | Pattern | A | **Chips, nothing pre-marked** | Six patterns, tap any that match. Deliberately not pre-filled — see the decision above. |
+| 4 | Pattern | A | **Chips, nothing pre-marked** | Six patterns, tap any that match. Deliberately not pre-filled — see the inference decision above. |
 | 5 | Diagnosed conditions | B · Hormonal & health | **Chips, exclusive "None"** | Same light multiselect; private-to-doctor copy. |
 | 6 | Menstrual cycle | B | **Cards, one tap** | Appears only if sex = female — men never see it (gating). |
 | 7 | Pregnancy-related | B | **Cards, one tap** | Appears only if sex = female. |
@@ -75,11 +75,11 @@ Every question gets the control that answers it fastest. No shared default input
 | 11 | Daily habits | C | **Table-as-cards + speech** | Lifestyle vs hair-care groups; sub-questions unfold only when the row is "yes"; salon treatments detail is **voice or type** (Web Speech, en-IN). |
 | 12 | Products tried | D · Treatments | **Fast-path skip** | "Never used any → skip" answers 5 rows in one tap; rows open only when marked Used. |
 | 13 | Procedures | D | **Fast-path skip** | "None done → skip" in one tap; sessions/helped expand only when Done. |
-| 14 | Side effects / poor response | D | **Yes/No + speech or type** | A 55yo says "itching and redness" aloud instead of typing it — the second voice field. |
+| 14 | Side effects / poor response | D | **Often already answered** | If Q12 recorded a side effect, this is the same sentence twice — so it arrives answered, naming the product it came from, overrulable in one tap. If both tables were skipped there was no treatment to react to, so it answers No. Otherwise Yes/No, then speech or typing. |
 | 15 | Sample type | E · Sample & consent | **Cards with sub-labels** | "Saliva – no needle" / "Blood – more DNA" / "Either". One decisive tap. |
 | 16 | Consent | E | **Big checkbox card** | Deliberately the heaviest interaction in the flow — it's a legal consent. |
 
-Mechanisms at a glance: **one-tap big targets ×6** (2, 6, 7, 8, 9, 15), **chips ×4** (3, 4, 5, 10), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **typed number ×1** (1), **consent checkbox ×1** (16). All 16 live on 5 screens.
+Mechanisms at a glance: **one-tap big targets ×6** (2, 6, 7, 8, 9, 15), **chips ×4** (3, 4, 5, 10), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **inferred and confirmed ×1** (14), **typed number ×1** (1), **explicit consent choice ×1** (16). All 16 live on 5 screens.
 
 ## What I'd do with one more week
 

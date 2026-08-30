@@ -456,3 +456,12 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .app.app-welcome .welcome{ max-width:1240px; gap:96px }
   .app.app-welcome .welcome h1{ font-size:58px }
 }
+
+/* An answer the form worked out from an earlier one — always visible, always
+   overrulable. Never used for anything the doctor is meant to read. */
+.infer-note{
+  margin:0 0 12px; padding:11px 13px; border-radius:10px;
+  background:var(--accent-soft); border:1px solid var(--accent-line);
+  font-size:13px; line-height:1.45; color:var(--text-2);
+}
+.infer-note b{ color:var(--accent); font-weight:700 }

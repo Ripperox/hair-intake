@@ -130,11 +130,14 @@ export function validateSectionD(answers: {
   procedures: Record<string, ProcedureLike>
   pastTreatmentSideEffects: boolean | null
   pastTreatmentDescribe: string | null
+  /** False when Q14's Yes was derived from Q12 — the doctor already has the
+      product row that says so, and we shouldn't invent work for the patient. */
+  requireDescribe: boolean
 }): SectionValidation {
   const fields: Record<string, FieldValidation> = {
     pastTreatmentSideEffects: validateRequiredBoolean(answers.pastTreatmentSideEffects),
   }
-  if (answers.pastTreatmentSideEffects) fields.pastTreatmentDescribe = validateRequiredText(answers.pastTreatmentDescribe)
+  if (answers.pastTreatmentSideEffects && answers.requireDescribe) fields.pastTreatmentDescribe = validateRequiredText(answers.pastTreatmentDescribe)
   // Only surfaced when a row is genuinely half-filled. A blank form has no
   // open rows, so this must not read as an answered field.
   const rowsDone = Object.values(answers.products).every(productRowComplete)
