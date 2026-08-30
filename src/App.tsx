@@ -161,7 +161,7 @@ export default function App() {
     procedures: answers.procedures,
     pastTreatmentSideEffects: answers.pastTreatmentSideEffects,
     pastTreatmentDescribe: answers.pastTreatmentDescribe,
-    requireDescribe: !sideEffectRow || q14Manual,
+    requireDescribe: !sideEffectRow,
   })
   const validationE = validateSectionE({
     sampleType: answers.sampleType,
