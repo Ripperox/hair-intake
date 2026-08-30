@@ -210,6 +210,7 @@ export function NumberStepper({
   onChange,
   min = 1,
   max = 100,
+  startAt,
   label,
   autoComplete = 'off',
   validationState = 'idle',
@@ -219,6 +220,9 @@ export function NumberStepper({
   onChange: (v: string) => void
   min?: number
   max?: number
+  /** Where the steppers begin from an empty field — the typical answer,
+      not the floor. Tapping + shouldn't propose the youngest age possible. */
+  startAt?: number
   label?: string
   autoComplete?: string
   validationState?: 'idle' | 'valid' | 'invalid'
@@ -227,13 +231,14 @@ export function NumberStepper({
   const [local, setLocal] = useState(value)
   useEffect(() => { setLocal(value) }, [value])
   const num = parseInt(local, 10)
+  const from = startAt ?? min
   const inc = () => {
-    const n = isNaN(num) ? min : Math.min(max, num + 1)
+    const n = isNaN(num) ? from : Math.min(max, num + 1)
     setLocal(String(n))
     onChange(String(n))
   }
   const dec = () => {
-    const n = isNaN(num) ? min : Math.max(min, num - 1)
+    const n = isNaN(num) ? from : Math.max(min, num - 1)
     setLocal(String(n))
     onChange(String(n))
   }

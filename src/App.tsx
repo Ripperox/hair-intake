@@ -293,7 +293,7 @@ export default function App() {
               </div>
             ))}
             {renderQuestion('1', 'When did you first notice hair loss?', 'Your age when it started.', (
-              <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={100} autoComplete={AUTOCOMPLETE_HINTS.ageHairLossBegan} validationState={vstate('A', 'ageHairLossBegan')} validationMessage={ageValidation.message ?? 'Enter your age'} />
+              <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={100} startAt={21} autoComplete={AUTOCOMPLETE_HINTS.ageHairLossBegan} validationState={vstate('A', 'ageHairLossBegan')} validationMessage={ageValidation.message ?? 'Enter your age'} />
             ))}
             {renderQuestion('2', 'How long has it been?', 'Since you first noticed.', (
               <div className="opt-grid">
