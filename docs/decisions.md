@@ -16,11 +16,12 @@ The "how" behind the build, in ~one page. Each decision names the option I had, 
 - Voice on a one-tap question is slower than the tap. Voice on an open "describe it" question is faster and friendlier than typing on a phone.
 - Trade-off accepted: iOS Safari lacks Web Speech recognition, so the mic degrades to a hint + typing there. A serverless whisper fallback is the one-week improvement, not the v1.
 
-## 3. Inference → confirmation, never assumption
+## 3. No pre-filled medical answers
 
-**Option:** ask every question cold, or quietly guess. **Chose:** one deterministic rule — the moment age-of-onset ≤ 25 and "father had hair loss" are both in, the two most common patterns pre-mark themselves, with a visible note ("we pre-marked the two most common patterns. Not right? Tap to remove").
+**Option:** infer likely answers from earlier ones and ask the patient to confirm. **Chose:** cut it.
 
-- This is the "inferred from an earlier answer and just confirmed" move the brief names. It stays deterministic (no model to second-guess) and is always visible/removable.
+- An earlier build pre-marked the two most common patterns on Q4 once onset ≤ 25 and "father had hair loss" were both in, labelled and removable. It demoed well, and it went: Q4 is a diagnostic signal the doctor reads, and a pre-marked chip the patient skims past becomes an answer nobody actually gave.
+- Inference is still used everywhere it can't be wrong: Q6/Q7 are skipped by sex context and recorded as "Not applicable", one-tap skips clear whole tables, and follow-ups only appear where the parent answer demands them. The rule is to save taps, never to supply the answer.
 
 ## 4. Phone and laptop designed separately
 

@@ -36,7 +36,7 @@ No env vars. No API keys in repo. Works offline after load.
 | **Conditional questions** | Built (sex gate) | Sex is one chip at the top of Section A. Female-only Q6/Q7 appear only for female; for "prefer not to say" they surface with "Not applicable." Plumbing the field into the section, not a step, keeps the calm. |
 | **Per-question input** | Built (`intake-components.tsx`) | Number stepper (age), single cards (duration/sample), multi chips with exclusive "None" (family/conditions), Yes/No, table-as-cards (habits/products/procedures). Each question gets the lightest control that answers it — not one chat box for everything. |
 | **Speech, only where speech wins** | Built, Web Speech API | The two questions that are naturally spoken (describe salon treatments, describe side effects) get a Speak button → transcript → field. Client-side, free, Hinglish-tolerant (`en-IN`), no key. Advisably, "some are speech" — the tap questions stay taps. Voice notes: iOS Safari lacks recognition, so it degrades to a hint + typing. |
-| **Inference → just confirm (Q4)** | Built, deterministic rule | If hair loss started ≤25 and the father had the same, we pre-mark "receding hairline / crown thinning" as chips with a "we pre-marked these — tap to remove" note. Inferred from earlier answers, always confirmed, never assumed. |
+| **No pre-filled medical answers** | Deliberately cut | A build of this had Q4 pre-mark the two likeliest patterns once onset ≤25 and the father's history were both in. It demoed well and I removed it: a pattern the patient never chose is the doctor's diagnostic signal, and a pre-marked chip that goes unread becomes a wrong answer nobody typed. Inference is used where it costs nothing to be wrong — skipping Q6/Q7 by sex, one-tap skips, "Not applicable" in the output — never to put words in the patient's mouth. |
 | **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one section at a time, thumb-sized, sticky Next. Laptop gets a **desk console** — not a stretched phone: a sticky completion rail (A–E + Review) on the left, the whole 5-section form as one scrollable document in the middle (like the doctor's printed page), and a live "the form, filling itself" panel on the right that updates as answers land. Arrow keys move between sections, ⌘/Ctrl-Enter jumps to Review. Layout tiers by monitor width: 2-column on small laptops, 3-column from 1170px, centered + roomier from 1460px, and larger type/spacing on UHD (≥1800px). Same state engine, two genuinely different UIs. |
 | **Sex question design** | Built, one chip in Section A | Male / Female / Prefer not to say. Female-only questions then gated — asked once, warmly, no extra screen. |
 | **Styling** | Built, no UI library | GenoRoot red + warm paper, Fraunces display serif over system UI text, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and the feel precise. |
@@ -65,7 +65,7 @@ Every question gets the control that answers it fastest. No shared default input
 | 1 | Age hair loss began | A · Personal & family | **Typed number ± stepper** | Just "28" + Enter. Faster and more precise than a slider or cards. |
 | 2 | How long | A | **3 cards, one tap** | Just "Less than 6 months" — zero thought. |
 | 3 | Family history | A | **Chips, exclusive "None"** | Pick several relatives; "No known family history" clears the rest. |
-| 4 | Pattern | A | **Chips + infer & confirm** | If onset ≤25 & father had it, the two most common patterns pre-mark with "we pre-marked these — tap to remove." Inferred, always confirmed. |
+| 4 | Pattern | A | **Chips, nothing pre-marked** | Six patterns, tap any that match. Deliberately not pre-filled — see the decision above. |
 | 5 | Diagnosed conditions | B · Hormonal & health | **Chips, exclusive "None"** | Same light multiselect; private-to-doctor copy. |
 | 6 | Menstrual cycle | B | **Cards, one tap** | Appears only if sex = female — men never see it (gating). |
 | 7 | Pregnancy-related | B | **Cards, one tap** | Appears only if sex = female. |
@@ -79,14 +79,14 @@ Every question gets the control that answers it fastest. No shared default input
 | 15 | Sample type | E · Sample & consent | **Cards with sub-labels** | "Saliva – no needle" / "Blood – more DNA" / "Either". One decisive tap. |
 | 16 | Consent | E | **Big checkbox card** | Deliberately the heaviest interaction in the flow — it's a legal consent. |
 
-Mechanisms at a glance: **one-tap big targets ×6** (2, 6, 7, 8, 9, 15), **chips ×3** (3, 5, 10), **infer & confirm ×1** (4), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **typed number ×1** (1), **consent checkbox ×1** (16). All 16 live on 5 screens.
+Mechanisms at a glance: **one-tap big targets ×6** (2, 6, 7, 8, 9, 15), **chips ×4** (3, 4, 5, 10), **speech or type ×2** (11, 14), **fast-path one-tap skip ×2** (12, 13), **typed number ×1** (1), **consent checkbox ×1** (16). All 16 live on 5 screens.
 
 ## What I'd do with one more week
 
 1. **Smudge-proof Hinglish + accent coverage** — the Web Speech `en-IN` transcript is solid but not perfect; a second pass with an accent-tolerant whisper fallback (serverless, env-held key) for iOS users who can't use Web Speech at all.
 2. **Clinic handoff polish** — one-page doctor summary (red flags, hormonal signals, treatment history) alongside the raw JSON, plus a WhatsApp-share link (DermaAI's actual channel). Print stylesheet for the front desk.
 3. **A11y & trust pass** — full screen-reader audit, larger font toggle, explicit DPDP consent copy, and field-level "why we ask this" explainers (e.g., "PCOS influences hair loss — your doctor uses this to choose tests").
-4. **More inference** — "talk freely about your hair" preamble: speak/type three sentences, deterministic keyword extraction pre-fills chips for confirmation. Grows the "infer and just confirm" pattern to more sections.
+4. **A "tell me in your own words" opener** — speak or type a few sentences up front, and use it to *reorder and pre-focus* questions rather than pre-answer them: the patient still taps every answer, but lands on the relevant ones first.
 
 ---
 

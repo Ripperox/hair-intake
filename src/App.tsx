@@ -78,25 +78,8 @@ export default function App() {
   // nudged[section]: the user tried to continue with answers missing — from then
   // on, unanswered fields in that section show as needing attention.
   const [nudged, setNudged] = useState<Record<string, boolean>>({})
-  const [patternSuggested, setPatternSuggested] = useState(false)
   const [copied, setCopied] = useState(false)
   const isDesktop = useIsDesktop()
-  const patternSeeded = useRef(false)
-
-  // Q4 inference: the moment age-of-onset + father's history point to early
-  // androgenetic loss, pre-mark the two most common patterns as *suggestions*
-  // — always confirmed, never assumed. Once the user touches Q4, never reseed.
-  useEffect(() => {
-    if (answers.pattern.length > 0) { patternSeeded.current = true; return }
-    if (patternSeeded.current) return
-    const age = parseInt(answers.ageHairLossBegan, 10)
-    const father = answers.familyHistory.includes('Father had hair loss')
-    if (!isNaN(age) && age >= 10 && age <= 25 && father) {
-      patternSeeded.current = true
-      setPatternSuggested(true)
-      setAnswers(prev => prev.pattern.length === 0 ? { ...prev, pattern: ['Receding hairline', 'Thinning at crown'] } : prev)
-    }
-  }, [answers.ageHairLossBegan, answers.familyHistory, answers.pattern])
 
   useEffect(() => {
     if (step === 'done') return // submitted — nothing left to persist
@@ -326,11 +309,6 @@ export default function App() {
             ))}
             {renderQuestion('4', 'What pattern do you see?', 'Select all that match you.', (
               <>
-                {patternSuggested && answers.pattern.length > 0 && (
-                  <div className="field-hint" style={{ marginBottom: 10, lineHeight: 1.45 }}>
-                    It started early and your father had it too, so we pre-marked the two most common patterns. Not right? Tap to remove.
-                  </div>
-                )}
                 <div className="chip-grid">
                   {['Receding hairline','Thinning at crown','Widening part line','Diffuse thinning','Patchy loss','Sudden excessive shedding'].map(opt => (
                     <ChipOption key={opt} label={opt} selected={answers.pattern.includes(opt)} onToggle={() => {
@@ -722,8 +700,6 @@ export default function App() {
               <pre>{JSON.stringify(finalForm, null, 2)}</pre>
             </details>
             <BigButton variant="ghost" onClick={() => {
-              patternSeeded.current = false
-              setPatternSuggested(false)
               setNudged({})
               setCopied(false)
               setAnswers(freshAnswers())
