@@ -757,9 +757,10 @@ export default function App() {
     return { answered, total }
   }
 
-  const { answered: essAnswered, total: essTotal } = essentialStats()
-  // The bar tracks answers, not screens: the form visibly fills as you go.
-  const progress = step === 'summary' ? 100 : Math.round((essAnswered / essTotal) * 100)
+  const { answered: essAnswered } = essentialStats()
+  // The bar tracks the page you're on, so it always agrees with the "N of 6"
+  // counter sitting right beneath it.
+  const progress = Math.min(100, Math.round((Math.max(1, screenIndex) / 6) * 100))
 
   const liveLines = () => {
     const rows: { label: string; value: string; answered: boolean }[] = []
