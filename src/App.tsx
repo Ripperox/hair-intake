@@ -159,6 +159,14 @@ export default function App() {
     if (st === 'idle' && nudged[section]) return 'invalid'
     return st
   }
+  // A one-tap skip answers the question — so it should also move you on,
+  // instead of leaving you staring at the rows you just dismissed.
+  const goToQuestion = (n: number) => {
+    setTimeout(() => {
+      document.getElementById(`q-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 60)
+  }
+
   const nudge = (section: string) => {
     setNudged(prev => ({ ...prev, [section]: true }))
     // Take them to the blank answer rather than making them hunt for it. On
@@ -251,7 +259,7 @@ export default function App() {
   }, [isDesktop, step])
 
   const renderQuestion = (n: string, title: string, subtitle: string | undefined, children: ReactNode) => (
-    <div className="q-block">
+    <div className="q-block" id={n ? `q-${n}` : undefined}>
       <div className="q-head">
         {n && <span className="q-num">{n}</span>}
         <div>
@@ -481,6 +489,7 @@ export default function App() {
                   const next: Answers['products'] = {}
                   for (const k of PRODUCT_ROW_KEYS) next[k] = { used: false, duration: null, helped: null, sideEffects: null }
                   update({ products: next })
+                  goToQuestion(13)
                 }}>Never used any → skip</button>
                 <div className="table-grid" style={{ marginTop: 12 }}>
                   {PRODUCT_ROW_KEYS.map(row => {
@@ -514,6 +523,7 @@ export default function App() {
                   const next: Answers['procedures'] = {}
                   for (const k of PROCEDURE_ROW_KEYS) next[k] = { done: false, sessions: null, helped: null }
                   update({ procedures: next })
+                  goToQuestion(14)
                 }}>None done → skip</button>
                 <div className="table-grid" style={{ marginTop: 12 }}>
                   {PROCEDURE_ROW_KEYS.map(row => {

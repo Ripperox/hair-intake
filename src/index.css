@@ -67,7 +67,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 
 /* Section screen layout */
 .screen-label{ font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:12px 20px 0 }
-.q-block{ border-top:1px solid var(--line); padding:18px 2px 4px; margin-top:18px }
+.q-block{ border-top:1px solid var(--line); padding:18px 2px 4px; margin-top:18px; scroll-margin-top:84px }
 .q-block:first-of-type{ border-top:none; margin-top:0; padding-top:0 }
 .q-head{ display:flex; align-items:flex-start; gap:10px; margin-bottom:12px }
 .q-num{ width:26px; height:26px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:800; display:grid; place-items:center; flex:none; margin-top:2px }
