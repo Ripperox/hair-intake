@@ -79,7 +79,7 @@ export function OptionCard({
       animate={{
         borderColor: isInvalid ? 'var(--danger)' : selected ? 'var(--accent)' : 'var(--line)',
         background: selected ? 'var(--accent-soft)' : 'var(--card)',
-        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : selected ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
+        boxShadow: isInvalid ? '0 0 0 3px var(--danger-glow)' : selected ? '0 0 0 3px var(--accent-glow)' : 'none',
       }}
       transition={spring}
       style={{ opacity: disabled ? 0.5 : 1 }}
@@ -126,7 +126,7 @@ export function ChipOption({
         background: selected ? (exclusive ? 'var(--text)' : 'var(--chip-on-bg)') : 'var(--chip-bg)',
         color: selected ? (exclusive ? 'white' : 'var(--chip-on)') : 'var(--text-2)',
         borderColor: isInvalid ? 'var(--danger)' : selected ? (exclusive ? 'var(--text)' : 'var(--accent-line)') : 'var(--line)',
-        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : selected ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
+        boxShadow: isInvalid ? '0 0 0 3px var(--danger-glow)' : selected ? '0 0 0 3px var(--accent-glow)' : 'none',
       }}
       transition={spring}
     >
@@ -170,7 +170,7 @@ export function YesNo({
           background: value === true ? 'var(--accent)' : isInvalid ? 'var(--bg-soft)' : 'var(--card)',
           color: value === true ? 'white' : 'var(--text-2)',
           borderColor: value === true ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
-          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : value === true ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
+          boxShadow: isInvalid ? '0 0 0 3px var(--danger-glow)' : value === true ? '0 0 0 3px var(--accent-glow)' : 'none',
         }}
         transition={spring}
       >
@@ -185,7 +185,7 @@ export function YesNo({
           background: value === false ? 'var(--accent)' : isInvalid ? 'var(--bg-soft)' : 'var(--card)',
           color: value === false ? 'white' : 'var(--text-2)',
           borderColor: value === false ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
-          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : value === false ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
+          boxShadow: isInvalid ? '0 0 0 3px var(--danger-glow)' : value === false ? '0 0 0 3px var(--accent-glow)' : 'none',
         }}
         transition={spring}
       >
@@ -279,7 +279,7 @@ export function NumberStepper({
           aria-describedby={isInvalid ? `${label}-error` : undefined}
           style={{
             borderColor: isValid ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
-            boxShadow: isValid ? '0 0 0 3px rgba(192,19,43,.12)' : isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : 'none',
+            boxShadow: isValid ? '0 0 0 3px var(--accent-glow)' : isInvalid ? '0 0 0 3px var(--danger-glow)' : 'none',
           }}
         />
         <motion.button

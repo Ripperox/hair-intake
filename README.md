@@ -39,7 +39,7 @@ No env vars. No API keys in repo. Works offline after load.
 | **Inference, but only from entailment** | Built + one deliberately cut | I mapped all 16 questions for relationships (`docs/inference-map.md`). Only three survive: Q12's "side effects" answers Q14 outright, both skips together answer Q14 as No, and a man is never offered PCOS in Q5. Each derived answer says where it came from and can be overruled in one tap. What I cut: Q4 used to pre-mark the likeliest patterns from onset age + father's history. It demoed well and it's gone — pattern is the doctor's diagnostic signal, and a pre-marked chip nobody reads is an answer the patient never gave. The rule: **infer what the patient already told you, never what the doctor is there to read.** |
 | **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one section at a time, thumb-sized, sticky Next. Laptop gets a **desk console** — not a stretched phone: a sticky completion rail (A–E + Review) on the left, the whole 5-section form as one scrollable document in the middle (like the doctor's printed page), and a live "the form, filling itself" panel on the right that updates as answers land. Arrow keys move between sections, ⌘/Ctrl-Enter jumps to Review. Layout tiers by monitor width: 2-column on small laptops, 3-column from 1170px, centered + roomier from 1460px, and larger type/spacing on UHD (≥1800px). Same state engine, two genuinely different UIs. |
 | **Sex question design** | Built, one chip in Section A | Male / Female / Prefer not to say. Female-only questions then gated — asked once, warmly, no extra screen. |
-| **Styling** | Built, no UI library | Clinic red + warm paper, Fraunces display serif over system UI text, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and the feel precise. |
+| **Styling** | Built, no UI library | Deep clinical green + warm paper (red is reserved for errors), Fraunces display serif over system UI text, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and the feel precise. |
 | **Validation that guides, not scolds** | Built | Fields stay quiet until you try to continue with blanks — then the first missing answer scrolls into view and asks for attention. "If yes" follow-ups (smoking severity, salon detail, product rows) are required, so the doctor's JSON can't contain half-answered rows. |
 | **Deploy** | Vercel static | One command, works without install — matches submission rule. |
 
@@ -98,5 +98,5 @@ src/
   App.tsx                # 5 section screens + flow + final JSON
   intake-components.tsx  # BigButton, OptionCard, ChipOption, YesNo, NumberStepper, VoicedTextArea…  
   use-is-desktop.ts      # phone vs laptop (≥1024px) split
-  index.css              # clinic red theme, mobile-first
+  index.css              # theme + layout, mobile-first
 ```
