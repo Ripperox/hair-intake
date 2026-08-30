@@ -1,4 +1,4 @@
-// GenoRoot — hair intake that fills itself
+// Hair & scalp intake that fills itself
 // Client-only, no keys, no backend. Deploy as static build.
 // 5 screens = the 5 sections of the fixed doctor form (A–E). Per-question
 // controls stay bespoke (one tap / chips / speech / infer+confirm).
@@ -653,7 +653,7 @@ export default function App() {
         return (
           <div className="welcome">
             <div className="welcome-main">
-              <div className="welcome-badge">GenoRoot · Hair &amp; Scalp Clinic</div>
+              <div className="welcome-badge">Hair &amp; Scalp Clinic</div>
               <h1>Help your doctor<br />understand your hair</h1>
               <p className="welcome-lead">
                 Five short sections, about three minutes. Mostly tapping. Your doctor gets the whole picture before you walk in.
@@ -756,7 +756,7 @@ export default function App() {
                 const blob = new Blob([JSON.stringify(finalForm, null, 2)], { type: 'application/json' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
-                a.href = url; a.download = 'genoroot-intake.json'; a.click()
+                a.href = url; a.download = 'hair-intake.json'; a.click()
                 URL.revokeObjectURL(url)
               }}>Download JSON</BigButton>
             </div>
@@ -957,7 +957,7 @@ export default function App() {
 
         <main className="desk-form">
           <header className="desk-header">
-            <div className="desk-brand">GenoRoot · Hair & Scalp Intake</div>
+            <div className="desk-brand">Hair &amp; Scalp Intake</div>
             <div className="desk-count"><b>{answered}</b><span> / {total} essentials</span></div>
             <button type="button" className="icon-btn" onClick={() => setShowLeaveSheet(true)} aria-label="Close">✕</button>
           </header>
@@ -1095,7 +1095,7 @@ function SummaryRow({ label, value, onEdit }: { label: string; value: string; on
 function buildFinalForm(answers: Answers) {
   // Output matches the fixed form — coverage & correctness graded
   return {
-    form: 'GenoRoot Hair & Scalp Intake',
+    form: 'Hair & Scalp Intake',
     submittedAt: new Date().toISOString(),
     A_personalAndFamily: {
       age_hair_loss_began: answers.ageHairLossBegan ? Number(answers.ageHairLossBegan) : null,

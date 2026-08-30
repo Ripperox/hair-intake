@@ -1,4 +1,4 @@
-# Decisions — GenoRoot intake
+# Decisions — hair & scalp intake
 
 The "how" behind the build, in ~one page. Each decision names the option I had, what I chose, and why.
 
