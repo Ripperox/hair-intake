@@ -200,6 +200,14 @@ export default function App() {
     return Object.values(v.fields).filter(f => f.state !== 'valid').length
   }
 
+  // A section the patient has actually started. Browsing ahead to an untouched
+  // section shouldn't paint it red — only a half-finished one gets flagged.
+  const sectionStarted = (s: Screen): boolean => {
+    const v = validations[s as string]
+    if (!v) return false
+    return Object.values(v.fields).some(f => f.state === 'valid')
+  }
+
   const sectionComplete = (s: Screen): boolean => {
     switch (s) {
       case 'A': return validationA.isComplete
@@ -885,7 +893,7 @@ export default function App() {
             const complete = sectionComplete(s)
             const left = missingCount(s)
             const current = step === s
-            const started = essAnswered > 0
+            const started = sectionStarted(s)
             return (
               <button key={g.letter} type="button" className={`rail-item ${current ? 'current' : ''} ${complete ? 'done' : ''}`} onClick={() => { setStep(s); if (!complete && started) nudge(s as string) }}>
                 <span className="rail-letter">{g.letter}</span>
