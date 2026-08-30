@@ -279,18 +279,40 @@ export default function App() {
     }
   }, [isDesktop, step])
 
-  const renderQuestion = (n: string, title: string, subtitle: string | undefined, children: ReactNode) => (
-    <div className="q-block" id={n ? `q-${n}` : undefined}>
-      <div className="q-head">
-        {n && <span className="q-num">{n}</span>}
-        <div>
-          <div className="q-title">{title}</div>
-          {subtitle && <div className="q-sub">{subtitle}</div>}
+  // One message under the question, never a red outline on every choice —
+  // outlining six chips reads as "all of these are wrong".
+  const err = (section: string, field: string, msg = 'Please choose one') =>
+    vstate(section, field) === 'invalid'
+      ? <p className="field-error" data-invalid>{msg}</p>
+      : null
+
+  const Q_ERROR: Record<string, [string, string, string]> = {
+    '2': ['A', 'duration', 'Please choose one'],
+    '3': ['A', 'familyHistory', 'Select at least one'],
+    '4': ['A', 'pattern', 'Select at least one'],
+    '5': ['B', 'diagnosedConditions', 'Select at least one, or None'],
+    '6': ['B', 'menstrualCycle', 'Please choose one'],
+    '7': ['B', 'pregnancyRelated', 'Please choose one'],
+    '15': ['E', 'sampleType', 'Please choose one'],
+    '16': ['E', 'consent', 'Please choose one'],
+  }
+
+  const renderQuestion = (n: string, title: string, subtitle: string | undefined, children: ReactNode) => {
+    const e = Q_ERROR[n]
+    return (
+      <div className="q-block" id={n ? `q-${n}` : undefined}>
+        <div className="q-head">
+          {n && <span className="q-num">{n}</span>}
+          <div>
+            <div className="q-title">{title}</div>
+            {subtitle && <div className="q-sub">{subtitle}</div>}
+          </div>
         </div>
+        {children}
+        {e && err(e[0], e[1], e[2])}
       </div>
-      {children}
-    </div>
-  )
+    )
+  }
 
   const renderSection = (s: Screen) => {
     switch (s) {
@@ -298,16 +320,19 @@ export default function App() {
         return (
           <SectionCard title="Personal & Family History">
             {renderQuestion('', 'Your context', 'Some questions apply only to women. This helps us ask the right ones.', (
-              <div className="chip-grid">
+              <>
+                <div className="chip-grid">
                 {(['Male','Female','Prefer not to say'] as const).map(opt => (
                   <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => {
                       const sex = opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other'
                       update(sex === 'male'
                         ? { sex, diagnosedConditions: answers.diagnosedConditions.filter(c => c !== 'PCOS/PCOD') }
                         : { sex })
-                    }} validationState={vstate('A', 'sex')} />
+                    }} />
                 ))}
-              </div>
+                </div>
+                {err('A', 'sex')}
+              </>
             ))}
             {renderQuestion('1', 'When did you first notice hair loss?', 'Your age when it started.', (
               <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={100} startAt={21} autoComplete={AUTOCOMPLETE_HINTS.ageHairLossBegan} validationState={vstate('A', 'ageHairLossBegan')} validationMessage={ageValidation.message ?? 'Enter your age'} />
@@ -315,7 +340,7 @@ export default function App() {
             {renderQuestion('2', 'How long has it been?', 'Since you first noticed.', (
               <div className="opt-grid">
                 {['Less than 6 months','6-12 months','Over a year'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.duration === opt} onSelect={() => update({ duration: opt })} validationState={vstate('A', 'duration')} />
+                  <OptionCard key={opt} label={opt} selected={answers.duration === opt} onSelect={() => update({ duration: opt })} />
                 ))}
               </div>
             ))}
@@ -335,7 +360,6 @@ export default function App() {
                           update({ familyHistory: [...answers.familyHistory.filter(x => x !== 'No known family history'), opt] })
                         }
                       }}
-                      validationState={vstate('A', 'familyHistory')}
                     />
                   ))}
                 </div>
@@ -347,7 +371,7 @@ export default function App() {
                   {['Receding hairline','Thinning at crown','Widening part line','Diffuse thinning','Patchy loss','Sudden excessive shedding'].map(opt => (
                     <ChipOption key={opt} label={opt} selected={answers.pattern.includes(opt)} onToggle={() => {
                       update({ pattern: answers.pattern.includes(opt) ? answers.pattern.filter(x => x !== opt) : [...answers.pattern, opt] })
-                    }} validationState={vstate('A', 'pattern')} />
+                    }} />
                   ))}
                 </div>
               </>
@@ -372,7 +396,6 @@ export default function App() {
                           update({ diagnosedConditions: [...answers.diagnosedConditions.filter(x => x !== 'None'), opt] })
                         }
                       }}
-                      validationState={vstate('B', 'diagnosedConditions')}
                     />
                   ))}
                 </div>
@@ -381,14 +404,14 @@ export default function App() {
             {answers.sex === 'female' && renderQuestion('6', 'Menstrual cycle', 'Hormones and hair are closely linked.', (
               <div className="opt-grid">
                 {['Regular','Irregular','Menopausal','Not applicable'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={vstate('B', 'menstrualCycle')} />
+                  <OptionCard key={opt} label={opt} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} />
                 ))}
               </div>
             ))}
             {answers.sex === 'female' && renderQuestion('7', 'Pregnancy-related hair loss?', 'If applicable.', (
               <div className="opt-grid">
                 {['Currently pregnant','Postpartum <1 year','Not applicable'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={vstate('B', 'pregnancyRelated')} />
+                  <OptionCard key={opt} label={opt} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} />
                 ))}
               </div>
             ))}
@@ -397,12 +420,14 @@ export default function App() {
                 <div className="q-head"><div><div className="q-title">Women-only questions</div><div className="q-sub">Answer only if they apply. Not applicable is fine.</div></div></div>
                 <div className="opt-grid">
                   {['Regular','Irregular','Menopausal','Not applicable'].map(opt => (
-                    <OptionCard key={opt} label={`Cycle · ${opt}`} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={vstate('B', 'menstrualCycle')} />
+                    <OptionCard key={opt} label={`Cycle · ${opt}`} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} />
                   ))}
                   {['Currently pregnant','Postpartum <1 year','Not applicable'].map(opt => (
-                    <OptionCard key={opt} label={`Pregnancy · ${opt}`} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={vstate('B', 'pregnancyRelated')} />
+                    <OptionCard key={opt} label={`Pregnancy · ${opt}`} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} />
                   ))}
                 </div>
+                {err('B', 'menstrualCycle', 'Choose a cycle option')}
+                {err('B', 'pregnancyRelated', 'Choose a pregnancy option')}
               </div>
             )}
             {renderQuestion('8', 'Acne or oily skin in adulthood?', 'After your teenage years.', (
@@ -472,9 +497,10 @@ export default function App() {
                         <span className="habit-label">Hair wash frequency</span>
                         <div className="opt-grid small">
                           {['Daily','Alternate Days','Weekly'].map(opt => (
-                            <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} validationState={vstate('C', 'hairWashFrequency')} />
+                            <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} />
                           ))}
                         </div>
+                        {err('C', 'hairWashFrequency')}
                       </div>
                     </div>
                     <div className="habit-row">
@@ -614,7 +640,7 @@ export default function App() {
             {renderQuestion('15', 'Preferred sample for genetic analysis', 'Both work. Saliva is the easy one.', (
               <div className="opt-grid">
                 {[{ id: 'Saliva', label: 'Saliva', sub: 'No needle' },{ id: 'Blood', label: 'Blood', sub: 'More DNA' },{ id: 'Either', label: 'Either', sub: 'Doctor can decide' }].map(opt => (
-                  <OptionCard key={opt.id} label={opt.label} subLabel={opt.sub} selected={answers.sampleType === opt.id} onSelect={() => update({ sampleType: opt.id })} validationState={vstate('E', 'sampleType')} />
+                  <OptionCard key={opt.id} label={opt.label} subLabel={opt.sub} selected={answers.sampleType === opt.id} onSelect={() => update({ sampleType: opt.id })} />
                 ))}
               </div>
             ))}
@@ -626,14 +652,12 @@ export default function App() {
                     subLabel="The clinic can collect a sample"
                     selected={answers.consent === true}
                     onSelect={() => update({ consent: true })}
-                    validationState={vstate('E', 'consent')}
                   />
                   <OptionCard
                     label="No, not right now"
                     subLabel="You can still see the doctor"
                     selected={answers.consent === false}
                     onSelect={() => update({ consent: false })}
-                    validationState={vstate('E', 'consent')}
                   />
                 </div>
                 <Hint>Declining is a real answer — it won't block your consultation.</Hint>

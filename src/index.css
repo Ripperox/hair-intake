@@ -355,14 +355,28 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 @media (min-width:1420px){
   .app.is-desktop{ grid-template-columns:250px minmax(0,1fr) 320px }
   .rail{ border-right:0 }
-  .desk-section .section-card{ columns:2; column-gap:38px }
-  .desk-section .section-head{ column-span:all }
-  .desk-section .q-block{ break-inside:avoid }
+  /* Grid, not CSS columns: columns flow each track independently, so the first
+     question in every column starts at a different height. A grid puts them on
+     shared rows, which is what a form is supposed to look like. */
+  .desk-section .section-body{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:0 38px;
+    align-items:start;
+  }
+  /* Every question carries the same rule above it, so the row tops line up
+     whichever column a question lands in. */
+  .desk-section .q-block,
+  .desk-section .q-block:first-of-type{
+    border-top:1px solid var(--line);
+    margin-top:0;
+    padding:18px 2px 22px;
+  }
 
-  /* Section C is two questions, one of them tall: columns would strand a
-     dead gutter beside it. Give it the full width instead — the habit
-     groups then sit side by side with room to breathe. */
-  #desk-C .section-card{ columns:auto }
+  /* Section C is two questions, one of them tall: side by side would strand a
+     dead gutter. Full width instead, so the habit groups get room. */
+  #desk-C .section-body{ display:block }
+  #desk-C .q-block:first-of-type{ border-top:none; padding-top:0 }
   #desk-C .habit-groups{ gap:32px }
   #desk-C .habit-main.col-layout .opt-grid.small{ flex-direction:row }
   #desk-C .habit-main.col-layout .opt-grid.small .opt-card{ flex:1 }
@@ -375,12 +389,13 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .section-title{ font-size:22px }
   .q-title{ font-size:17px }
 }
+@media (min-width:2000px){
+  .desk-section .section-body{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 42px }
+  /* Two questions never spread across three tracks — that's the dead gutter. */
+  #desk-E .section-body{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+}
 @media (min-width:2400px){
   .app.is-desktop{ grid-template-columns:300px minmax(0,1fr) 420px }
-  .desk-section .section-card{ columns:3; column-gap:42px }
-  /* Sections with fewer blocks than columns would leave an empty gutter */
-  #desk-C .section-card{ columns:auto }
-  #desk-E .section-card{ columns:2 }
 }
 @media print{
   .progress-wrap, .step-header, .footer, .btn, .sheet-backdrop, .welcome-hinglish, .welcome-meta{ display:none !important }

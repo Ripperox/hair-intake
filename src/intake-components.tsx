@@ -57,29 +57,25 @@ export function OptionCard({
   onSelect,
   subLabel,
   disabled = false,
-  validationState = 'idle',
 }: {
   label: string
   selected: boolean
   onSelect: () => void
   subLabel?: string
   disabled?: boolean
-  validationState?: 'idle' | 'valid' | 'invalid'
 }) {
-  const isInvalid = validationState === 'invalid'
   return (
     <motion.button
       type="button"
       className={`opt-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
       onClick={disabled ? undefined : onSelect}
       disabled={disabled}
-      data-invalid={isInvalid || undefined}
       whileTap={{ scale: 0.98 }}
       whileHover={{ scale: disabled ? 1 : 1.015, boxShadow: '0 8px 30px rgba(26,26,26,.12)' }}
       animate={{
-        borderColor: isInvalid ? 'var(--danger)' : selected ? 'var(--accent)' : 'var(--line)',
+        borderColor: selected ? 'var(--accent)' : 'var(--line)',
         background: selected ? 'var(--accent-soft)' : 'var(--card)',
-        boxShadow: isInvalid ? '0 0 0 3px var(--danger-glow)' : selected ? '0 0 0 3px var(--accent-glow)' : 'none',
+        boxShadow: selected ? '0 0 0 3px var(--accent-glow)' : 'none',
       }}
       transition={spring}
       style={{ opacity: disabled ? 0.5 : 1 }}
@@ -106,27 +102,23 @@ export function ChipOption({
   selected,
   onToggle,
   exclusive = false,
-  validationState = 'idle',
 }: {
   label: string
   selected: boolean
   onToggle: () => void
   exclusive?: boolean
-  validationState?: 'idle' | 'valid' | 'invalid'
 }) {
-  const isInvalid = validationState === 'invalid'
   return (
     <motion.button
       type="button"
       className={`chip-opt ${selected ? 'selected' : ''} ${exclusive ? 'exclusive' : ''}`}
       onClick={onToggle}
-      data-invalid={isInvalid || undefined}
       whileTap={{ scale: 0.95 }}
       animate={{
         background: selected ? (exclusive ? 'var(--text)' : 'var(--chip-on-bg)') : 'var(--chip-bg)',
         color: selected ? (exclusive ? 'white' : 'var(--chip-on)') : 'var(--text-2)',
-        borderColor: isInvalid ? 'var(--danger)' : selected ? (exclusive ? 'var(--text)' : 'var(--accent-line)') : 'var(--line)',
-        boxShadow: isInvalid ? '0 0 0 3px var(--danger-glow)' : selected ? '0 0 0 3px var(--accent-glow)' : 'none',
+        borderColor: selected ? (exclusive ? 'var(--text)' : 'var(--accent-line)') : 'var(--line)',
+        boxShadow: selected ? '0 0 0 3px var(--accent-glow)' : 'none',
       }}
       transition={spring}
     >
@@ -544,6 +536,7 @@ export function SectionCard({ title, subtitle, children }: {
         )}
       </div>
       <motion.div
+        className="section-body"
         initial="initial"
         animate="enter"
         variants={{ initial: {}, enter: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } } }}
