@@ -30,7 +30,7 @@ No env vars. No API keys in repo. Works offline after load.
 | Decision | Choice | Why |
 |---|---|---|
 | **No LLM / no STT service** | Built deterministic logic | The 16 questions are fixed. An LLM would add ~$0.02 + 1.2s per step ×16 ≈ $0.32 and 19s wait, plus an API key and flakiness, for zero coverage gain. Determinism is a feature for a 55yo on a phone. Hinglish is in copy, not a model. |
-| **No backend** | Client-only, `localStorage` for resume | No login/admin per rules. Persisting answers locally means a dropped call doesn't lose progress, and there's no PII on a server. The filled JSON is downloadable/copiable at the end — a real clinic would POST it; a static demo shouldn't pretend to store PHI. |
+| **No backend** | Client-only, `localStorage` for resume | No login/admin per rules. Persisting answers locally (7-day TTL) means a dropped call doesn't lose progress, and there's no PII on a server; the stored copy is wiped the moment the intake completes. The filled JSON is downloadable/copiable at the end — a real clinic would POST it; a static demo shouldn't pretend to store PHI. |
 | **Vite + React** | Bought (off-the-shelf) | Fastest to a polished, deployable build. Typed schema → typed UI → typed JSON output in one codebase. No need for Django/DRF for a patient-facing step flow; a frontend-leaning hire should bias to where taste shows. |
 | **5 screens, not 16 taps** | Built (grouped by schema sections) | The fixed output is a 5-section form — so the patient sees those same 5 titled screens (A–E). Fewer transitions than a 16-step wizard (that was the loudest PM feedback), zero loss of per-question controls. Each screen has one Continue, sticky on every device. |
 | **Conditional questions** | Built (sex gate) | Sex is one chip at the top of Section A. Female-only Q6/Q7 appear only for female; for "prefer not to say" they surface with "Not applicable." Plumbing the field into the section, not a step, keeps the calm. |
@@ -39,7 +39,8 @@ No env vars. No API keys in repo. Works offline after load.
 | **Inference → just confirm (Q4)** | Built, deterministic rule | If hair loss started ≤25 and the father had the same, we pre-mark "receding hairline / crown thinning" as chips with a "we pre-marked these — tap to remove" note. Inferred from earlier answers, always confirmed, never assumed. |
 | **Phone vs laptop, designed separately** | Built (`use-is-desktop.ts` + CSS) | Phone: one section at a time, thumb-sized, sticky Next. Laptop gets a **desk console** — not a stretched phone: a sticky completion rail (A–E + Review) on the left, the whole 5-section form as one scrollable document in the middle (like the doctor's printed page), and a live "the form, filling itself" panel on the right that updates as answers land. Arrow keys move between sections, ⌘/Ctrl-Enter jumps to Review. Layout tiers by monitor width: 2-column on small laptops, 3-column from 1170px, centered + roomier from 1460px, and larger type/spacing on UHD (≥1800px). Same state engine, two genuinely different UIs. |
 | **Sex question design** | Built, one chip in Section A | Male / Female / Prefer not to say. Female-only questions then gated — asked once, warmly, no extra screen. |
-| **Styling** | Built, no UI library | GenoRoot red + warm paper, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and feel precise. |
+| **Styling** | Built, no UI library | GenoRoot red + warm paper, Fraunces display serif over system UI text, 52px tap targets, high contrast. No shadcn churn; keeps bundle small and the feel precise. |
+| **Validation that guides, not scolds** | Built | Fields stay quiet until you try to continue with blanks — then the first missing answer scrolls into view and asks for attention. "If yes" follow-ups (smoking severity, salon detail, product rows) are required, so the doctor's JSON can't contain half-answered rows. |
 | **Deploy** | Vercel static | One command, works without install — matches submission rule. |
 
 **What I bought instead of built:** Vite, React, TypeScript, browser `localStorage`, Vercel hosting. Everything else is built to keep the app deterministic and finished.
@@ -48,10 +49,10 @@ No env vars. No API keys in repo. Works offline after load.
 
 ## How I checked the form actually gets filled correctly
 
-1. **Single source of truth:** `src/schema.ts` defines `Answers` — every question maps to a typed field. `App.tsx: buildFinalForm()` must produce all sections A–E; missing a field is a type error.
-2. **Coverage check:** the stepper `STEPS` array is derived from the PDF's 16 questions + sex context. Conditional steps (Q6/Q7) are unit-tested by flipping `sex` and asserting `getVisibleSteps()` length.
-3. **Manual walkthroughs:** male flow (skips Q6/Q7, 18 steps), female flow (includes Q6/Q7, 20 steps), and "prefer not to say" flow — each walked on a phone viewport (390px) and desktop. Verified localStorage resume, back navigation, and the final JSON `Copy`/`Download`.
-4. **Built output:** `npm run build` passes `tsc -b` (verbatimModuleSyntax, noUnusedLocals) — the JSON shape is type-checked.
+1. **Single source of truth:** `src/schema.ts` defines `Answers` — every question maps to a typed field. `App.tsx: buildFinalForm()` must produce all sections A–E; missing a field is a type error, and `npm run build` runs `tsc -b` (verbatimModuleSyntax, noUnusedLocals) so the JSON shape is type-checked on every build.
+2. **"If yes" follow-ups are required, not optional:** smoking severity, salon-treatment detail, the side-effect description, and every opened product/procedure row's details all gate section completion (`src/validation.ts`). A used product with no duration can't reach Review.
+3. **Nothing blank slips through:** each section's Continue checks completeness — tap it with blanks and the first missing answer is scrolled to and marked. The Review screen re-checks all five sections and blocks Confirm with a tap-to-fix list.
+4. **Manual walkthroughs against the published schema:** male flow (Q6/Q7 recorded as "Not applicable" in the JSON, exactly as a man would tick the paper form), female flow (Q6/Q7 asked), and "prefer not to say" (asked, with Not applicable offered) — each walked on a 390px phone viewport and on desktop, then the final JSON compared field-by-field against `haikustudio.ai/hiring/intake-schema.json`. Also verified: localStorage resume, back navigation, Copy/Download.
 
 ---
 

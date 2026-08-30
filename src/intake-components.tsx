@@ -66,7 +66,6 @@ export function OptionCard({
   disabled?: boolean
   validationState?: 'idle' | 'valid' | 'invalid'
 }) {
-  const isValid = validationState === 'valid'
   const isInvalid = validationState === 'invalid'
   return (
     <motion.button
@@ -74,12 +73,13 @@ export function OptionCard({
       className={`opt-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
       onClick={disabled ? undefined : onSelect}
       disabled={disabled}
+      data-invalid={isInvalid || undefined}
       whileTap={{ scale: 0.98 }}
       whileHover={{ scale: disabled ? 1 : 1.015, boxShadow: '0 8px 30px rgba(26,26,26,.12)' }}
       animate={{
-        borderColor: isInvalid ? 'var(--danger)' : selected ? 'var(--accent)' : isValid ? 'var(--accent)' : 'var(--line)',
+        borderColor: isInvalid ? 'var(--danger)' : selected ? 'var(--accent)' : 'var(--line)',
         background: selected ? 'var(--accent-soft)' : 'var(--card)',
-        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid || selected ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : selected ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
       }}
       transition={spring}
       style={{ opacity: disabled ? 0.5 : 1 }}
@@ -117,19 +117,19 @@ export function ChipOption({
   exclusive?: boolean
   validationState?: 'idle' | 'valid' | 'invalid'
 }) {
-  const isValid = validationState === 'valid'
   const isInvalid = validationState === 'invalid'
   return (
     <motion.button
       type="button"
       className={`chip-opt ${selected ? 'selected' : ''} ${exclusive ? 'exclusive' : ''}`}
       onClick={onToggle}
+      data-invalid={isInvalid || undefined}
       whileTap={{ scale: 0.95 }}
       animate={{
         background: selected ? (exclusive ? 'var(--text)' : 'var(--chip-on-bg)') : 'var(--chip-bg)',
         color: selected ? (exclusive ? 'white' : 'var(--chip-on)') : 'var(--text-2)',
-        borderColor: isInvalid ? 'var(--danger)' : selected ? (exclusive ? 'var(--text)' : 'var(--accent-line)') : isValid ? 'var(--accent)' : 'var(--line)',
-        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid ? '0 0 0 3px rgba(26,107,84,.12)' : selected ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+        borderColor: isInvalid ? 'var(--danger)' : selected ? (exclusive ? 'var(--text)' : 'var(--accent-line)') : 'var(--line)',
+        boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : selected ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
       }}
       transition={spring}
     >
@@ -165,10 +165,9 @@ export function YesNo({
   noLabel?: string
   validationState?: 'idle' | 'valid' | 'invalid'
 }) {
-  const isValid = validationState === 'valid'
   const isInvalid = validationState === 'invalid'
   return (
-    <div className="yesno">
+    <div className="yesno" data-invalid={isInvalid || undefined}>
       <motion.button
         type="button"
         className="yn-btn"
@@ -177,8 +176,8 @@ export function YesNo({
         animate={{
           background: value === true ? 'var(--accent)' : isInvalid ? 'var(--bg-soft)' : 'var(--card)',
           color: value === true ? 'white' : 'var(--text-2)',
-          borderColor: value === true ? 'var(--accent)' : isInvalid ? 'var(--danger)' : isValid ? 'var(--accent)' : 'var(--line)',
-          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+          borderColor: value === true ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
+          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : value === true ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
         }}
         transition={spring}
       >
@@ -192,8 +191,8 @@ export function YesNo({
         animate={{
           background: value === false ? 'var(--accent)' : isInvalid ? 'var(--bg-soft)' : 'var(--card)',
           color: value === false ? 'white' : 'var(--text-2)',
-          borderColor: value === false ? 'var(--accent)' : isInvalid ? 'var(--danger)' : isValid ? 'var(--accent)' : 'var(--line)',
-          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : isValid ? '0 0 0 3px rgba(26,107,84,.12)' : 'none',
+          borderColor: value === false ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
+          boxShadow: isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : value === false ? '0 0 0 3px rgba(192,19,43,.10)' : 'none',
         }}
         transition={spring}
       >
@@ -278,10 +277,11 @@ export function NumberStepper({
           aria-label={label || 'Number'}
           autoComplete={autoComplete}
           aria-invalid={isInvalid}
+          data-invalid={isInvalid || undefined}
           aria-describedby={isInvalid ? `${label}-error` : undefined}
           style={{
             borderColor: isValid ? 'var(--accent)' : isInvalid ? 'var(--danger)' : 'var(--line)',
-            boxShadow: isValid ? '0 0 0 3px rgba(26,107,84,.14)' : isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : 'none',
+            boxShadow: isValid ? '0 0 0 3px rgba(192,19,43,.12)' : isInvalid ? '0 0 0 3px rgba(180,35,24,.14)' : 'none',
           }}
         />
         <motion.button
@@ -354,11 +354,13 @@ export function VoicedTextArea({
   onChange,
   placeholder,
   rows = 3,
+  invalid = false,
 }: {
   value: string
   onChange: (v: string) => void
   placeholder?: string
   rows?: number
+  invalid?: boolean
 }) {
   const { supported, listening, toggle } = useVoice()
   const commit = useCallback((t: string) => {
@@ -368,7 +370,7 @@ export function VoicedTextArea({
   }, [value, onChange])
   return (
     <div className="voiced-wrap">
-      <TextArea value={value} onChange={onChange} placeholder={placeholder} rows={rows} />
+      <TextArea value={value} onChange={onChange} placeholder={placeholder} rows={rows} invalid={invalid} />
       <div className="voiced-bar">
         {supported ? (
           <motion.button
@@ -420,11 +422,13 @@ export function TextArea({
   onChange,
   placeholder,
   rows = 3,
+  invalid = false,
 }: {
   value: string
   onChange: (v: string) => void
   placeholder?: string
   rows?: number
+  invalid?: boolean
 }) {
   return (
     <textarea
@@ -432,7 +436,9 @@ export function TextArea({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className="txt-area"
+      className={`txt-area ${invalid ? 'invalid' : ''}`}
+      aria-invalid={invalid || undefined}
+      data-invalid={invalid || undefined}
     />
   )
 }

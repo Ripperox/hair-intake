@@ -34,6 +34,12 @@ export function validateRequiredBoolean(value: boolean | null): FieldValidation 
   return { state: 'valid' }
 }
 
+// Required free text (follow-ups: "if yes, describe")
+export function validateRequiredText(value: string | null): FieldValidation {
+  if (!value || value.trim() === '') return { state: 'idle' }
+  return { state: 'valid' }
+}
+
 // Section-level validation
 export interface SectionValidation {
   isComplete: boolean
@@ -41,12 +47,14 @@ export interface SectionValidation {
 }
 
 export function validateSectionA(answers: {
+  sex: string | null
   ageHairLossBegan: string
   duration: string | null
   familyHistory: string[]
   pattern: string[]
 }): SectionValidation {
   const fields = {
+    sex: validateRequiredSelect(answers.sex),
     ageHairLossBegan: validateAge(answers.ageHairLossBegan),
     duration: validateRequiredSelect(answers.duration),
     familyHistory: validateRequiredMulti(answers.familyHistory),
@@ -83,13 +91,15 @@ export function validateSectionB(answers: {
 
 export function validateSectionC(answers: {
   smoking: boolean | null
+  smokingSeverity: string | null
   alcohol: boolean | null
   hardWater: boolean | null
   hairWashFrequency: string | null
   heatingTools: boolean | null
   salonTreatments: boolean | null
+  salonTreatmentDetail: string | null
 }): SectionValidation {
-  const fields = {
+  const fields: Record<string, FieldValidation> = {
     smoking: validateRequiredBoolean(answers.smoking),
     alcohol: validateRequiredBoolean(answers.alcohol),
     hardWater: validateRequiredBoolean(answers.hardWater),
@@ -97,16 +107,37 @@ export function validateSectionC(answers: {
     heatingTools: validateRequiredBoolean(answers.heatingTools),
     salonTreatments: validateRequiredBoolean(answers.salonTreatments),
   }
+  // "if yes" follow-ups are part of the answer, not optional extras
+  if (answers.smoking) fields.smokingSeverity = validateRequiredSelect(answers.smokingSeverity)
+  if (answers.salonTreatments) fields.salonTreatmentDetail = validateRequiredText(answers.salonTreatmentDetail)
   const isComplete = Object.values(fields).every(f => f.state === 'valid')
   return { isComplete, fields }
 }
 
+type ProductLike = { used: boolean; duration: string | null; helped: boolean | null; sideEffects: boolean | null }
+type ProcedureLike = { done: boolean; sessions: string | null; helped: boolean | null }
+
+export function productRowComplete(p: ProductLike): boolean {
+  return !p.used || (p.duration !== null && p.helped !== null && p.sideEffects !== null)
+}
+
+export function procedureRowComplete(p: ProcedureLike): boolean {
+  return !p.done || (p.sessions !== null && p.helped !== null)
+}
+
 export function validateSectionD(answers: {
+  products: Record<string, ProductLike>
+  procedures: Record<string, ProcedureLike>
   pastTreatmentSideEffects: boolean | null
+  pastTreatmentDescribe: string | null
 }): SectionValidation {
-  const fields = {
+  const fields: Record<string, FieldValidation> = {
     pastTreatmentSideEffects: validateRequiredBoolean(answers.pastTreatmentSideEffects),
   }
+  if (answers.pastTreatmentSideEffects) fields.pastTreatmentDescribe = validateRequiredText(answers.pastTreatmentDescribe)
+  const rowsDone = Object.values(answers.products).every(productRowComplete)
+    && Object.values(answers.procedures).every(procedureRowComplete)
+  fields.rows = { state: rowsDone ? 'valid' : 'idle' }
   const isComplete = Object.values(fields).every(f => f.state === 'valid')
   return { isComplete, fields }
 }

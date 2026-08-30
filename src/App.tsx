@@ -23,8 +23,9 @@ import {
 } from './intake-components'
 import {
   validateSectionA, validateSectionB, validateSectionC, validateSectionD, validateSectionE,
-  validateAge,
+  validateAge, productRowComplete, procedureRowComplete,
 } from './validation'
+import type { SectionValidation, ValidationState } from './validation'
 
 type Screen = 'welcome' | 'A' | 'B' | 'C' | 'D' | 'E' | 'summary' | 'done'
 const SECTIONS: Screen[] = ['A', 'B', 'C', 'D', 'E']
@@ -74,29 +75,44 @@ export default function App() {
   const [showLeaveSheet, setShowLeaveSheet] = useState(false)
   const [editRow, setEditRow] = useState<{ kind: 'product' | 'procedure'; key: string } | null>(null)
   const [habitModal, setHabitModal] = useState<{ kind: 'smoking' | 'salon' } | null>(null)
+  // nudged[section]: the user tried to continue with answers missing — from then
+  // on, unanswered fields in that section show as needing attention.
+  const [nudged, setNudged] = useState<Record<string, boolean>>({})
+  const [patternSuggested, setPatternSuggested] = useState(false)
+  const [copied, setCopied] = useState(false)
   const isDesktop = useIsDesktop()
   const patternSeeded = useRef(false)
-  const answersRef = useRef(answers)
-  answersRef.current = answers
 
-  // Q4 inference: if hair loss started young + father similar, pre-mark the most
-  // common patterns as *suggestions* – always confirmed, never assumed.
+  // Q4 inference: the moment age-of-onset + father's history point to early
+  // androgenetic loss, pre-mark the two most common patterns as *suggestions*
+  // — always confirmed, never assumed. Once the user touches Q4, never reseed.
   useEffect(() => {
-    if (step !== 'A' && step !== 'B') return
-    if (!patternSeeded.current) {
+    if (answers.pattern.length > 0) { patternSeeded.current = true; return }
+    if (patternSeeded.current) return
+    const age = parseInt(answers.ageHairLossBegan, 10)
+    const father = answers.familyHistory.includes('Father had hair loss')
+    if (!isNaN(age) && age >= 10 && age <= 25 && father) {
       patternSeeded.current = true
-      const a = answersRef.current
-      const age = parseInt(a.ageHairLossBegan, 10)
-      const father = a.familyHistory.includes('Father had hair loss')
-      if (!isNaN(age) && age <= 25 && father && a.pattern.length === 0) {
-        setAnswers(prev => ({ ...prev, pattern: ['Receding hairline', 'Thinning at crown'] }))
-      }
+      setPatternSuggested(true)
+      setAnswers(prev => prev.pattern.length === 0 ? { ...prev, pattern: ['Receding hairline', 'Thinning at crown'] } : prev)
     }
+  }, [answers.ageHairLossBegan, answers.familyHistory, answers.pattern])
+
+  useEffect(() => {
+    if (step === 'done') return // submitted — nothing left to persist
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ts: Date.now(), answers })) } catch {}
+  }, [answers, step])
+
+  // Honor the promise "deleted on submit": wipe the device copy at Done.
+  useEffect(() => {
+    if (step === 'done') { try { localStorage.removeItem(STORAGE_KEY) } catch {} }
   }, [step])
 
+  // Phone flow: each section starts at its top, not wherever the last
+  // section's Continue button left the scroll.
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ts: Date.now(), answers })) } catch {}
-  }, [answers])
+    if (!isDesktop) window.scrollTo(0, 0)
+  }, [step, isDesktop])
 
   const update = useCallback((patch: Partial<Answers>) => {
     setAnswers(prev => ({ ...prev, ...patch }))
@@ -110,11 +126,10 @@ export default function App() {
   }, [])
 
   const screenIndex = SCREEN_ORDER.indexOf(step)
-  const sectionIdx = SECTIONS.indexOf(step as any)
-  const progress = sectionIdx >= 0 ? Math.round((sectionIdx / SECTIONS.length) * 100) : step === 'summary' ? 100 : 0
 
   // Validation state for positive validation (show success when correct)
   const validationA = validateSectionA({
+    sex: answers.sex,
     ageHairLossBegan: answers.ageHairLossBegan,
     duration: answers.duration,
     familyHistory: answers.familyHistory,
@@ -130,14 +145,19 @@ export default function App() {
   })
   const validationC = validateSectionC({
     smoking: answers.smoking,
+    smokingSeverity: answers.smokingSeverity,
     alcohol: answers.alcohol,
     hardWater: answers.hardWater,
     hairWashFrequency: answers.hairWashFrequency,
     heatingTools: answers.heatingTools,
     salonTreatments: answers.salonTreatments,
+    salonTreatmentDetail: answers.salonTreatmentDetail,
   })
   const validationD = validateSectionD({
+    products: answers.products,
+    procedures: answers.procedures,
     pastTreatmentSideEffects: answers.pastTreatmentSideEffects,
+    pastTreatmentDescribe: answers.pastTreatmentDescribe,
   })
   const validationE = validateSectionE({
     sampleType: answers.sampleType,
@@ -146,14 +166,27 @@ export default function App() {
 
   const ageValidation = validateAge(answers.ageHairLossBegan)
 
+  const validations: Record<string, SectionValidation> = {
+    A: validationA, B: validationB, C: validationC, D: validationD, E: validationE,
+  }
+  // Displayed state: untouched fields stay quiet until the user tries to move
+  // on with answers missing — then, and only then, they ask for attention.
+  const vstate = (section: string, field: string): ValidationState => {
+    const st = validations[section]?.fields[field]?.state ?? 'idle'
+    if (st === 'idle' && nudged[section]) return 'invalid'
+    return st
+  }
+  const nudge = (section: string) => {
+    setNudged(prev => ({ ...prev, [section]: true }))
+    setTimeout(() => {
+      document.querySelector('[data-invalid]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+  }
+
   const validAge = (): boolean => {
     const n = parseInt(answers.ageHairLossBegan, 10)
     return !!answers.ageHairLossBegan && !isNaN(n) && n >= 10 && n <= 100
   }
-
-  const habitsCompleted = (): boolean =>
-    answers.smoking !== null && answers.alcohol !== null && answers.hardWater !== null &&
-    !!answers.hairWashFrequency && answers.heatingTools !== null && answers.salonTreatments !== null
 
   const sectionComplete = (s: Screen): boolean => {
     switch (s) {
@@ -182,7 +215,8 @@ export default function App() {
     if (!isDesktop) return
     const onKey = (e: KeyboardEvent) => {
       if (showLeaveSheet) return
-      if (e.key === 'Escape') { setEditRow(null); return }
+      if (e.key === 'Escape') { setEditRow(null); setHabitModal(null); return }
+      if (editRow || habitModal) return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       const axis = [...SECTIONS, 'summary'] as Screen[]
@@ -200,7 +234,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isDesktop, step, showLeaveSheet, goNext, goPrev, editRow])
+  }, [isDesktop, step, showLeaveSheet, goNext, goPrev, editRow, habitModal])
 
   // Desktop: when a section is targeted, bring it into view (rail + arrows).
   const prevStep = useRef<Screen>('welcome')
@@ -230,21 +264,21 @@ export default function App() {
     switch (s) {
       case 'A':
         return (
-          <SectionCard title="Personal & Family History" subtitle="Section A · 4 quick questions — best guess is fine.">
-            {renderQuestion('', 'Your context', 'Some questions differ for women — one tap helps us ask the right ones.', (
+          <SectionCard title="Personal & Family History" subtitle="Four quick questions. Best guess is fine.">
+            {renderQuestion('', 'Your context', 'Some questions apply only to women. This helps us ask the right ones.', (
               <div className="chip-grid">
                 {(['Male','Female','Prefer not to say'] as const).map(opt => (
-                  <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => update({ sex: opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other' })} validationState={validationA.fields.sex?.state || 'idle'} />
+                  <ChipOption key={opt} label={opt} selected={answers.sex === (opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other')} onToggle={() => update({ sex: opt === 'Male' ? 'male' : opt === 'Female' ? 'female' : 'other' })} validationState={vstate('A', 'sex')} />
                 ))}
               </div>
             ))}
-            {renderQuestion('1', 'When did you first notice hair loss?', 'You age when it started — best guess is fine.', (
-              <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={100} autoComplete={AUTOCOMPLETE_HINTS.ageHairLossBegan} validationState={ageValidation.state} validationMessage={ageValidation.message} />
+            {renderQuestion('1', 'When did you first notice hair loss?', 'Your age when it started.', (
+              <NumberStepper value={answers.ageHairLossBegan} onChange={v => update({ ageHairLossBegan: v })} min={10} max={100} autoComplete={AUTOCOMPLETE_HINTS.ageHairLossBegan} validationState={vstate('A', 'ageHairLossBegan')} validationMessage={ageValidation.message ?? 'Enter your age'} />
             ))}
             {renderQuestion('2', 'How long has it been?', 'Since you first noticed.', (
               <div className="opt-grid">
                 {['Less than 6 months','6-12 months','Over a year'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.duration === opt} onSelect={() => update({ duration: opt })} validationState={validationA.fields.duration?.state || 'idle'} />
+                  <OptionCard key={opt} label={opt} selected={answers.duration === opt} onSelect={() => update({ duration: opt })} validationState={vstate('A', 'duration')} />
                 ))}
               </div>
             ))}
@@ -264,7 +298,7 @@ export default function App() {
                           update({ familyHistory: [...answers.familyHistory.filter(x => x !== 'No known family history'), opt] })
                         }
                       }}
-                      validationState={validationA.fields.familyHistory?.state || 'idle'}
+                      validationState={vstate('A', 'familyHistory')}
                     />
                   ))}
                 </div>
@@ -272,20 +306,16 @@ export default function App() {
             ))}
             {renderQuestion('4', 'What pattern do you see?', 'Select all that match you.', (
               <>
-                {(() => {
-                  const ageN = parseInt(answers.ageHairLossBegan, 10)
-                  const suggested = !isNaN(ageN) && ageN <= 25 && answers.familyHistory.includes('Father had hair loss')
-                  return suggested && answers.pattern.length > 0 ? (
-                    <div className="field-hint" style={{ marginBottom: 10, lineHeight: 1.45 }}>
-                      Based on when it started + your father&apos;s hair loss, we pre-marked the two most common patterns. Tap to remove any that don&apos;t match.
-                    </div>
-                  ) : null
-                })()}
+                {patternSuggested && answers.pattern.length > 0 && (
+                  <div className="field-hint" style={{ marginBottom: 10, lineHeight: 1.45 }}>
+                    It started early and your father had it too, so we pre-marked the two most common patterns. Not right? Tap to remove.
+                  </div>
+                )}
                 <div className="chip-grid">
                   {['Receding hairline','Thinning at crown','Widening part line','Diffuse thinning','Patchy loss','Sudden excessive shedding'].map(opt => (
                     <ChipOption key={opt} label={opt} selected={answers.pattern.includes(opt)} onToggle={() => {
                       update({ pattern: answers.pattern.includes(opt) ? answers.pattern.filter(x => x !== opt) : [...answers.pattern, opt] })
-                    }} validationState={validationA.fields.pattern?.state || 'idle'} />
+                    }} validationState={vstate('A', 'pattern')} />
                   ))}
                 </div>
               </>
@@ -295,8 +325,8 @@ export default function App() {
 
       case 'B':
         return (
-          <SectionCard title="Hormones & Health" subtitle="Section B · mostly one-tap Yes/No — fastest section.">
-            {renderQuestion('5', 'Any diagnosed conditions?', 'Helps your doctor decide which tests to run — not shared outside the clinic.', (
+          <SectionCard title="Hormones & Health" subtitle="Mostly yes or no. The fastest section.">
+            {renderQuestion('5', 'Any diagnosed conditions?', 'This decides which tests make sense. It stays inside the clinic.', (
               <>
                 <div className="chip-grid">
                   {['PCOS/PCOD','Thyroid disorder','Diabetes','Autoimmune disease','Anemia','None'].map(opt => (
@@ -310,52 +340,52 @@ export default function App() {
                           update({ diagnosedConditions: [...answers.diagnosedConditions.filter(x => x !== 'None'), opt] })
                         }
                       }}
-                      validationState={validationB.fields.diagnosedConditions?.state || 'idle'}
+                      validationState={vstate('B', 'diagnosedConditions')}
                     />
                   ))}
                 </div>
               </>
             ))}
-            {answers.sex === 'female' && renderQuestion('6', 'Menstrual cycle', 'For your doctor to interpret the hair picture correctly.', (
+            {answers.sex === 'female' && renderQuestion('6', 'Menstrual cycle', 'Hormones and hair are closely linked.', (
               <div className="opt-grid">
                 {['Regular','Irregular','Menopausal','Not applicable'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={validationB.fields.menstrualCycle?.state || 'idle'} />
+                  <OptionCard key={opt} label={opt} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={vstate('B', 'menstrualCycle')} />
                 ))}
               </div>
             ))}
             {answers.sex === 'female' && renderQuestion('7', 'Pregnancy-related hair loss?', 'If applicable.', (
               <div className="opt-grid">
                 {['Currently pregnant','Postpartum <1 year','Not applicable'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={validationB.fields.pregnancyRelated?.state || 'idle'} />
+                  <OptionCard key={opt} label={opt} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={vstate('B', 'pregnancyRelated')} />
                 ))}
               </div>
             ))}
             {answers.sex === 'other' && (
               <div className="q-block">
-                <div className="q-head"><span className="q-num" /><div><div className="q-title">Women-only questions</div><div className="q-sub">Answered only if they apply — Not applicable is fine.</div></div></div>
+                <div className="q-head"><div><div className="q-title">Women-only questions</div><div className="q-sub">Answer only if they apply. Not applicable is fine.</div></div></div>
                 <div className="opt-grid">
                   {['Regular','Irregular','Menopausal','Not applicable'].map(opt => (
-                    <OptionCard key={opt} label={`Cycle · ${opt}`} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={validationB.fields.menstrualCycle?.state || 'idle'} />
+                    <OptionCard key={opt} label={`Cycle · ${opt}`} selected={answers.menstrualCycle === opt} onSelect={() => update({ menstrualCycle: opt })} validationState={vstate('B', 'menstrualCycle')} />
                   ))}
                   {['Currently pregnant','Postpartum <1 year','Not applicable'].map(opt => (
-                    <OptionCard key={opt} label={`Pregnancy · ${opt}`} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={validationB.fields.pregnancyRelated?.state || 'idle'} />
+                    <OptionCard key={opt} label={`Pregnancy · ${opt}`} selected={answers.pregnancyRelated === opt} onSelect={() => update({ pregnancyRelated: opt })} validationState={vstate('B', 'pregnancyRelated')} />
                   ))}
                 </div>
               </div>
             )}
-            {renderQuestion('8', 'Acne or oily skin in adulthood?', 'After your teenage years — hormonal clues your doctor uses.', (
-              <YesNo value={answers.adultAcneOilySkin} onChange={v => update({ adultAcneOilySkin: v })} validationState={validationB.fields.adultAcneOilySkin?.state || 'idle'} />
+            {renderQuestion('8', 'Acne or oily skin in adulthood?', 'After your teenage years.', (
+              <YesNo value={answers.adultAcneOilySkin} onChange={v => update({ adultAcneOilySkin: v })} validationState={vstate('B', 'adultAcneOilySkin')} />
             ))}
-            {renderQuestion('9', 'Excess body or facial hair growth?', 'A gentle hormonal signal — only your doctor sees this.', (
-              <YesNo value={answers.excessBodyFacialHair} onChange={v => update({ excessBodyFacialHair: v })} validationState={validationB.fields.excessBodyFacialHair?.state || 'idle'} />
+            {renderQuestion('9', 'Excess body or facial hair growth?', 'Only your doctor sees this.', (
+              <YesNo value={answers.excessBodyFacialHair} onChange={v => update({ excessBodyFacialHair: v })} validationState={vstate('B', 'excessBodyFacialHair')} />
             ))}
           </SectionCard>
         )
 
       case 'C':
         return (
-          <SectionCard title="Lifestyle & Triggers" subtitle="Section C · habits in 30 seconds, speak or tap the details.">
-            {renderQuestion('10', 'In the last 6 months, any of these?', 'Select all that happened — or none.', (
+          <SectionCard title="Lifestyle & Triggers" subtitle="Your routine, in about 30 seconds.">
+            {renderQuestion('10', 'In the last 6 months, any of these?', 'Select any that happened. None is a fine answer.', (
               <>
                 <div className="chip-grid">
                   {['Crash dieting or major weight loss','High stress or emotional trauma','Fever with illness (COVID, Dengue, Typhoid)','Recent surgery','Change in location/water/air quality'].map(opt => (
@@ -375,19 +405,29 @@ export default function App() {
                     <div className="habit-row">
                       <div className="habit-main">
                         <span className="habit-label">Smoking</span>
-                        <YesNo value={answers.smoking} onChange={v => { update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null }); if (v) setHabitModal({ kind: 'smoking' }) }} validationState={validationC.fields.smoking?.state || 'idle'} />
+                        <YesNo value={answers.smoking} onChange={v => { update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null }); if (v) setHabitModal({ kind: 'smoking' }) }} validationState={vstate('C', 'smoking')} />
                       </div>
+                      {answers.smoking && (
+                        <button
+                          type="button"
+                          className={`habit-detail-btn ${answers.smokingSeverity ? 'filled' : ''} ${vstate('C', 'smokingSeverity') === 'invalid' ? 'invalid' : ''}`}
+                          data-invalid={vstate('C', 'smokingSeverity') === 'invalid' || undefined}
+                          onClick={() => setHabitModal({ kind: 'smoking' })}
+                        >
+                          {answers.smokingSeverity ? answers.smokingSeverity : 'How many a day?'} <span aria-hidden="true">›</span>
+                        </button>
+                      )}
                     </div>
                     <div className="habit-row">
                       <div className="habit-main">
                         <span className="habit-label">Alcohol</span>
-                        <YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} validationState={validationC.fields.alcohol?.state || 'idle'} />
+                        <YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} validationState={vstate('C', 'alcohol')} />
                       </div>
                     </div>
                     <div className="habit-row">
                       <div className="habit-main">
                         <span className="habit-label">Hard water for hair wash</span>
-                        <YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} validationState={validationC.fields.hardWater?.state || 'idle'} />
+                        <YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} validationState={vstate('C', 'hardWater')} />
                       </div>
                     </div>
                   </div>
@@ -400,7 +440,7 @@ export default function App() {
                         <span className="habit-label">Hair wash frequency</span>
                         <div className="opt-grid small">
                           {['Daily','Alternate Days','Weekly'].map(opt => (
-                            <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} validationState={validationC.fields.hairWashFrequency?.state || 'idle'} />
+                            <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} validationState={vstate('C', 'hairWashFrequency')} />
                           ))}
                         </div>
                       </div>
@@ -408,14 +448,24 @@ export default function App() {
                     <div className="habit-row">
                       <div className="habit-main">
                         <span className="habit-label">Heating tools / styling chemicals</span>
-                        <YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} validationState={validationC.fields.heatingTools?.state || 'idle'} />
+                        <YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} validationState={vstate('C', 'heatingTools')} />
                       </div>
                     </div>
                     <div className="habit-row">
                       <div className="habit-main">
                         <span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span>
-                        <YesNo value={answers.salonTreatments} onChange={v => { update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null }); if (v) setHabitModal({ kind: 'salon' }) }} validationState={validationC.fields.salonTreatments?.state || 'idle'} />
+                        <YesNo value={answers.salonTreatments} onChange={v => { update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null }); if (v) setHabitModal({ kind: 'salon' }) }} validationState={vstate('C', 'salonTreatments')} />
                       </div>
+                      {answers.salonTreatments && (
+                        <button
+                          type="button"
+                          className={`habit-detail-btn ${answers.salonTreatmentDetail ? 'filled' : ''} ${vstate('C', 'salonTreatmentDetail') === 'invalid' ? 'invalid' : ''}`}
+                          data-invalid={vstate('C', 'salonTreatmentDetail') === 'invalid' || undefined}
+                          onClick={() => setHabitModal({ kind: 'salon' })}
+                        >
+                          {answers.salonTreatmentDetail ? answers.salonTreatmentDetail : 'Which ones?'} <span aria-hidden="true">›</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -426,8 +476,8 @@ export default function App() {
 
       case 'D':
         return (
-          <SectionCard title="Treatments & Products" subtitle="Section D · if you've never tried anything, each is one tap to skip.">
-            {renderQuestion('12', 'Products you have tried', 'Tap Used only where needed — everything else stays collapsed.', (
+          <SectionCard title="Treatments & Products" subtitle="Never tried anything? One tap skips the lot.">
+            {renderQuestion('12', 'Products you have tried', 'Only tap Used where it applies.', (
               <>
                 <button type="button" className="fast-path" onClick={() => {
                   const next: Answers['products'] = {}
@@ -437,13 +487,17 @@ export default function App() {
                 <div className="table-grid" style={{ marginTop: 12 }}>
                   {PRODUCT_ROW_KEYS.map(row => {
                     const p = answers.products[row]
-                    const summary = p.used ? `${p.duration ? p.duration + ' · ' : ''}${p.helped == null ? '?' : p.helped ? 'helped' : 'no help'}${p.sideEffects == null ? '' : p.sideEffects ? ' · side effects' : ''}` : ''
+                    const complete = productRowComplete(p)
+                    const summary = !p.used ? '' : complete
+                      ? `${p.duration} · ${p.helped ? 'helped' : 'no help'}${p.sideEffects ? ' · side effects' : ''}`
+                      : 'Tap to finish the details ›'
+                    const flag = nudged['D'] && p.used && !complete
                     return (
                       <div key={row} className={`table-row ${p.used ? 'is-used' : ''}`}>
                         <div className="table-row-head">
-                          <button type="button" className="table-row-label" onClick={() => setEditRow({ kind: 'product', key: row })}>
+                          <button type="button" className="table-row-label" data-invalid={flag || undefined} onClick={() => setEditRow({ kind: 'product', key: row })}>
                             <span>{row}</span>
-                            <span className={`table-row-summary ${p.used ? 'show' : ''}`}>{summary}</span>
+                            <span className={`table-row-summary ${p.used ? 'show' : ''} ${!complete ? 'todo' : ''} ${flag ? 'flag' : ''}`}>{summary}</span>
                           </button>
                           <YesNo value={p.used} onChange={v => {
                             if (v) setEditRow({ kind: 'product', key: row })
@@ -456,7 +510,7 @@ export default function App() {
                 </div>
               </>
             ))}
-            {renderQuestion('13', 'In-clinic procedures', 'Tap Done only where applicable — rest stay collapsed.', (
+            {renderQuestion('13', 'In-clinic procedures', 'Only tap Done where it applies.', (
               <>
                 <button type="button" className="fast-path" onClick={() => {
                   const next: Answers['procedures'] = {}
@@ -466,13 +520,17 @@ export default function App() {
                 <div className="table-grid" style={{ marginTop: 12 }}>
                   {PROCEDURE_ROW_KEYS.map(row => {
                     const p = answers.procedures[row]
-                    const summary = p.done ? `${p.sessions ? p.sessions + ' sessions · ' : ''}${p.helped == null ? '?' : p.helped ? 'helped' : 'no help'}` : ''
+                    const complete = procedureRowComplete(p)
+                    const summary = !p.done ? '' : complete
+                      ? `${p.sessions} sessions · ${p.helped ? 'helped' : 'no help'}`
+                      : 'Tap to finish the details ›'
+                    const flag = nudged['D'] && p.done && !complete
                     return (
                       <div key={row} className={`table-row ${p.done ? 'is-used' : ''}`}>
                         <div className="table-row-head">
-                          <button type="button" className="table-row-label" onClick={() => setEditRow({ kind: 'procedure', key: row })}>
+                          <button type="button" className="table-row-label" data-invalid={flag || undefined} onClick={() => setEditRow({ kind: 'procedure', key: row })}>
                             <span>{row}</span>
-                            <span className={`table-row-summary ${p.done ? 'show' : ''}`}>{summary}</span>
+                            <span className={`table-row-summary ${p.done ? 'show' : ''} ${!complete ? 'todo' : ''} ${flag ? 'flag' : ''}`}>{summary}</span>
                           </button>
                           <YesNo value={p.done} onChange={v => {
                             if (v) setEditRow({ kind: 'procedure', key: row })
@@ -485,12 +543,12 @@ export default function App() {
                 </div>
               </>
             ))}
-            {renderQuestion('14', 'Side effects or poor response to past treatment?', 'If yes, a few words helps your doctor.', (
+            {renderQuestion('14', 'Side effects or poor response to past treatment?', 'If yes, a few words is enough.', (
               <>
-                <YesNo value={answers.pastTreatmentSideEffects} onChange={v => update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null })} validationState={validationD.fields.pastTreatmentSideEffects?.state || 'idle'} />
+                <YesNo value={answers.pastTreatmentSideEffects} onChange={v => update({ pastTreatmentSideEffects: v, pastTreatmentDescribe: v ? answers.pastTreatmentDescribe : null })} validationState={vstate('D', 'pastTreatmentSideEffects')} />
                 {answers.pastTreatmentSideEffects && (
                   <div style={{ marginTop: 16 }}>
-                    <VoicedTextArea value={answers.pastTreatmentDescribe || ''} onChange={v => update({ pastTreatmentDescribe: v })} placeholder="What happened? e.g. Itchy scalp with minoxidil" rows={3} />
+                    <VoicedTextArea value={answers.pastTreatmentDescribe || ''} onChange={v => update({ pastTreatmentDescribe: v })} placeholder="What happened? e.g. Itchy scalp with minoxidil" rows={3} invalid={vstate('D', 'pastTreatmentDescribe') === 'invalid'} />
                   </div>
                 )}
               </>
@@ -500,22 +558,22 @@ export default function App() {
 
       case 'E':
         return (
-          <SectionCard title="Sample & Consent" subtitle="Section E · the last 30 seconds.">
-            {renderQuestion('15', 'Preferred sample for genetic analysis', 'Both work. Saliva is easiest — just spit in a tube.', (
+          <SectionCard title="Sample & Consent" subtitle="The last 30 seconds.">
+            {renderQuestion('15', 'Preferred sample for genetic analysis', 'Both work. Saliva is the easy one.', (
               <div className="opt-grid">
                 {[{ id: 'Saliva', label: 'Saliva', sub: 'No needle' },{ id: 'Blood', label: 'Blood', sub: 'More DNA' },{ id: 'Either', label: 'Either', sub: 'Doctor can decide' }].map(opt => (
-                  <OptionCard key={opt.id} label={opt.label} subLabel={opt.sub} selected={answers.sampleType === opt.id} onSelect={() => update({ sampleType: opt.id })} validationState={validationE.fields.sampleType?.state || 'idle'} />
+                  <OptionCard key={opt.id} label={opt.label} subLabel={opt.sub} selected={answers.sampleType === opt.id} onSelect={() => update({ sampleType: opt.id })} validationState={vstate('E', 'sampleType')} />
                 ))}
               </div>
             ))}
             {renderQuestion('16', 'Consent', 'I agree to sample collection and genetic analysis for my hair-loss profile. You can withdraw anytime.', (
               <>
-                <label className="consent-card">
+                <label className={`consent-card ${vstate('E', 'consent') === 'invalid' ? 'invalid' : ''}`} data-invalid={vstate('E', 'consent') === 'invalid' || undefined}>
                   <input type="checkbox" checked={!!answers.consent} onChange={e => update({ consent: e.target.checked })} />
                   <span className="consent-check" aria-hidden="true">{answers.consent ? '✓' : ''}</span>
                   <span className="consent-text">Yes, I consent</span>
                 </label>
-                <Hint>Without consent we can&apos;t collect a sample, but your doctor can still see you.</Hint>
+                <Hint>No consent, no sample. Your doctor can still see you either way.</Hint>
               </>
             ))}
           </SectionCard>
@@ -534,12 +592,12 @@ export default function App() {
             <div className="welcome-badge">GenoRoot · Hair & Scalp Clinic</div>
             <h1>Help your doctor<br />understand your hair</h1>
             <p className="welcome-lead">
-              A short, private conversation before your visit — 5 sections, about 3 minutes. Your doctor sees a complete summary; you barely notice you filled anything.
+              Five short sections, about three minutes. Your doctor gets the complete picture before you walk in.
             </p>
             <div className="welcome-meta">
               <span>5 sections</span><span className="dot">·</span><span>~3 minutes</span><span className="dot">·</span><span>No login</span><span className="dot">·</span><span>Stays on this device</span>
             </div>
-            <BigButton onClick={() => setStep('A')}>Start — Section A</BigButton>
+            <BigButton onClick={() => setStep('A')}>Start Section A</BigButton>
             <p className="welcome-hinglish">Hinglish is fine · हिंदी-English, jo aapko easy lage</p>
           </div>
         )
@@ -547,8 +605,9 @@ export default function App() {
       case 'summary': {
         const hasProducts = Object.values(answers.products).some(v => v.used)
         const hasProcedures = Object.values(answers.procedures).some(v => v.done)
+        const missing = SECTIONS.filter(s => !sectionComplete(s))
         return (
-          <SectionCard title="Review — looks right?" subtitle="Tap any answer to go back and change it.">
+          <SectionCard title="Does this look right?" subtitle="Tap any answer to change it.">
             <div className="summary-list">
               <SummaryRow label="Context" value={answers.sex || '— not specified'} onEdit={() => setStep('A')} />
               <SummaryRow label="Age when hair loss began" value={answers.ageHairLossBegan || '—'} onEdit={() => setStep('A')} />
@@ -579,7 +638,19 @@ export default function App() {
               <SummaryRow label="Sample" value={answers.sampleType || '—'} onEdit={() => setStep('E')} />
               <SummaryRow label="Consent" value={answers.consent ? 'Yes' : 'No'} onEdit={() => setStep('E')} />
             </div>
-            <BigButton onClick={() => setStep('done')}>Confirm & complete</BigButton>
+            {missing.length > 0 && (
+              <div className="summary-missing">
+                <p>A few answers are still blank:</p>
+                <div className="summary-missing-list">
+                  {missing.map(s => (
+                    <button key={s} type="button" className="summary-missing-btn" onClick={() => { setStep(s); nudge(s as string) }}>
+                      {s} · {SECTION_TITLE[s as string]} ›
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <BigButton onClick={() => setStep('done')} disabled={missing.length > 0}>Confirm & complete</BigButton>
             <BigButton variant="ghost" onClick={goPrev}>Go back</BigButton>
           </SectionCard>
         )
@@ -590,13 +661,16 @@ export default function App() {
         return (
           <div className="done">
             <div className="done-icon">✓</div>
-            <h1>Done — your doctor has the full picture</h1>
+            <h1>Done. Your doctor has the full picture</h1>
             <p className="done-lead">No paper to hand over. No nurse re-typing. Walk in and your consultation starts where it should.</p>
             <div className="done-actions">
-              <BigButton variant="secondary" onClick={() => {
-                navigator.clipboard?.writeText(JSON.stringify(finalForm, null, 2))
-                alert('Copied JSON to clipboard')
-              }}>Copy JSON</BigButton>
+              <BigButton variant="secondary" onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(JSON.stringify(finalForm, null, 2))
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                } catch {}
+              }}>{copied ? 'Copied ✓' : 'Copy JSON'}</BigButton>
               <BigButton variant="ghost" onClick={() => {
                 const blob = new Blob([JSON.stringify(finalForm, null, 2)], { type: 'application/json' })
                 const url = URL.createObjectURL(blob)
@@ -606,10 +680,18 @@ export default function App() {
               }}>Download JSON</BigButton>
             </div>
             <details className="json-preview" open>
-              <summary>Filled form — structured data (what the doctor sees)</summary>
+              <summary>The filled form, as structured data</summary>
               <pre>{JSON.stringify(finalForm, null, 2)}</pre>
             </details>
-            <BigButton variant="ghost" onClick={() => { patternSeeded.current = false; setAnswers(freshAnswers()); setStep('welcome'); try{localStorage.removeItem('hair-intake-answers')}catch{} }}>Start another intake</BigButton>
+            <BigButton variant="ghost" onClick={() => {
+              patternSeeded.current = false
+              setPatternSuggested(false)
+              setNudged({})
+              setCopied(false)
+              setAnswers(freshAnswers())
+              setStep('welcome')
+              try { localStorage.removeItem('hair-intake-answers') } catch {}
+            }}>Start another intake</BigButton>
           </div>
         )
       }
@@ -622,19 +704,23 @@ export default function App() {
   const essentialStats = () => {
     let answered = 0
     let total = 0
-    answered += Number(validAge()) + Number(!!answers.duration) + Number(answers.familyHistory.length > 0) + Number(answers.pattern.length > 0)
-    total += 4
-    const f = answers.sex === 'female'
+    answered += Number(!!answers.sex) + Number(validAge()) + Number(!!answers.duration) + Number(answers.familyHistory.length > 0) + Number(answers.pattern.length > 0)
+    total += 5
+    const f = answers.sex === 'female' || answers.sex === 'other'
     answered += Number(answers.diagnosedConditions.length > 0) + Number(answers.adultAcneOilySkin !== null) + Number(answers.excessBodyFacialHair !== null) + (f ? Number(!!answers.menstrualCycle) + Number(!!answers.pregnancyRelated) : 0)
     total += 3 + (f ? 2 : 0)
-    answered += Number(habitsCompleted())
+    answered += Number(validationC.isComplete)
     total += 1
-    answered += Number(answers.pastTreatmentSideEffects !== null)
+    answered += Number(validationD.isComplete)
     total += 1
-    answered += Number(!!answers.sampleType) + Number(!!answers.consent)
+    answered += Number(!!answers.sampleType) + Number(answers.consent !== null)
     total += 2
     return { answered, total }
   }
+
+  const { answered: essAnswered, total: essTotal } = essentialStats()
+  // The bar tracks answers, not screens: the form visibly fills as you go.
+  const progress = step === 'summary' ? 100 : Math.round((essAnswered / essTotal) * 100)
 
   const liveLines = () => {
     const rows: { label: string; value: string; answered: boolean }[] = []
@@ -655,7 +741,7 @@ export default function App() {
     push('Acne / oily skin', answers.adultAcneOilySkin == null ? null : answers.adultAcneOilySkin ? 'Yes' : 'No')
     push('Excess body / facial hair', answers.excessBodyFacialHair == null ? null : answers.excessBodyFacialHair ? 'Yes' : 'No')
     push('Last 6 months', answers.past6Months.length ? answers.past6Months.join(' · ') : null)
-    const b = [answers.smoking == null ? null : answers.smoking ? 'Smoking: Yes' : 'Smoking: No', answers.alcohol == null ? null : answers.alcohol ? 'Alcohol: Yes' : 'Alcohol: No', answers.hardWater == null ? null : answers.hardWater ? 'Hard water: Yes' : 'Hard water: No', answers.heatingTools == null ? null : answers.heatingTools ? 'Tools: Yes' : 'Tools: No'].filter(Boolean)
+    const b = [answers.smoking == null ? null : answers.smoking ? `Smoking: Yes${answers.smokingSeverity ? ' (' + answers.smokingSeverity + ')' : ''}` : 'Smoking: No', answers.alcohol == null ? null : answers.alcohol ? 'Alcohol: Yes' : 'Alcohol: No', answers.hardWater == null ? null : answers.hardWater ? 'Hard water: Yes' : 'Hard water: No', answers.heatingTools == null ? null : answers.heatingTools ? 'Tools: Yes' : 'Tools: No'].filter(Boolean)
     push('Smoking · alcohol · water · tools', b.length ? b.join(' · ') : null)
     push('Hair wash frequency', answers.hairWashFrequency)
     push('Salon treatments', answers.salonTreatments == null ? null : answers.salonTreatments ? `Yes${answers.salonTreatmentDetail ? ' — ' + answers.salonTreatmentDetail : ''}` : 'No')
@@ -732,7 +818,7 @@ export default function App() {
           <div className="detail-head">
             <div>
               <h3 className="detail-title">{isSmoking ? 'Smoking' : 'Salon treatments'}</h3>
-              <p className="detail-sub">{isSmoking ? 'How many per day — this matters for your hair picture.' : 'Which ones and when — a few words tells your doctor plenty.'}</p>
+              <p className="detail-sub">{isSmoking ? 'Roughly how many a day?' : 'Which ones, and roughly when?'}</p>
             </div>
             <button type="button" className="icon-btn" onClick={() => setHabitModal(null)} aria-label="Close">✕</button>
           </div>
@@ -740,7 +826,7 @@ export default function App() {
             {isSmoking ? (
               <div className="opt-grid small">
                 {['Mild <5/day','Moderate 5-10/day','Severe >10/day'].map(opt => (
-                  <OptionCard key={opt} label={opt} selected={answers.smokingSeverity === opt} onSelect={() => update({ smokingSeverity: opt })} />
+                  <OptionCard key={opt} label={opt} selected={answers.smokingSeverity === opt} onSelect={() => { update({ smokingSeverity: opt }); setHabitModal(null) }} />
                 ))}
               </div>
             ) : (
@@ -807,7 +893,7 @@ export default function App() {
 
         <aside className="desk-preview">
           <div className="desk-preview-title">The form, filling itself</div>
-          <p className="desk-preview-sub">What your doctor sees — updating as you answer.</p>
+          <p className="desk-preview-sub">This is the page your doctor gets.</p>
           <div className="desk-preview-list">
             {liveLines().map((r, i) => (
               <div key={i} className={`desk-preview-row ${r.answered ? 'answered' : ''}`}>
@@ -821,7 +907,7 @@ export default function App() {
               <BigButton onClick={() => setStep('summary')}>Review & finish →</BigButton>
             </div>
           )}
-          <div className="desk-preview-foot">Saved on this device · DPDP: deleted on submit</div>
+          <div className="desk-preview-foot">Stays on this device. Deleted when you submit.</div>
         </aside>
 
         {sheet}
@@ -874,7 +960,7 @@ export default function App() {
       {step === 'summary' && (
         <footer className="footer">
           <span>Review</span>
-          <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
+          <span className="footer-hint">Saved on this device. Deleted when you submit.</span>
         </footer>
       )}
       {SECTIONS.includes(step as any) && (
@@ -886,8 +972,8 @@ export default function App() {
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] as const }}
         >
           <BigButton variant="ghost" onClick={goPrev}>← Previous</BigButton>
-          <BigButton onClick={goNext} disabled={!sectionComplete(step as any)}>
-            {step === 'E' ? 'Review & finish' : sectionComplete(step as any) ? `Next — ${SECTION_TITLE[SECTIONS[SECTIONS.indexOf(step as any) + 1] as string]}` : 'Answer everything above'}
+          <BigButton onClick={() => { if (sectionComplete(step as any)) goNext(); else nudge(step as string) }}>
+            {step === 'E' ? 'Review & finish' : `Next — ${SECTION_TITLE[SECTIONS[SECTIONS.indexOf(step as any) + 1] as string]}`}
           </BigButton>
         </motion.div>
       )}
@@ -921,8 +1007,9 @@ function buildFinalForm(answers: Answers) {
     },
     B_hormonalAndHealth: {
       diagnosed_conditions: answers.diagnosedConditions,
-      menstrual_cycle: answers.menstrualCycle,
-      pregnancy_related: answers.pregnancyRelated,
+      // A male patient on the paper form would tick "Not applicable" — mirror that.
+      menstrual_cycle: answers.menstrualCycle ?? (answers.sex === 'male' ? 'Not applicable' : null),
+      pregnancy_related: answers.pregnancyRelated ?? (answers.sex === 'male' ? 'Not applicable' : null),
       adult_acne_oily_skin: answers.adultAcneOilySkin,
       excess_body_facial_hair: answers.excessBodyFacialHair,
     },
