@@ -135,9 +135,11 @@ export function validateSectionD(answers: {
     pastTreatmentSideEffects: validateRequiredBoolean(answers.pastTreatmentSideEffects),
   }
   if (answers.pastTreatmentSideEffects) fields.pastTreatmentDescribe = validateRequiredText(answers.pastTreatmentDescribe)
+  // Only surfaced when a row is genuinely half-filled. A blank form has no
+  // open rows, so this must not read as an answered field.
   const rowsDone = Object.values(answers.products).every(productRowComplete)
     && Object.values(answers.procedures).every(procedureRowComplete)
-  fields.rows = { state: rowsDone ? 'valid' : 'idle' }
+  if (!rowsDone) fields.rows = { state: 'idle' }
   const isComplete = Object.values(fields).every(f => f.state === 'valid')
   return { isComplete, fields }
 }

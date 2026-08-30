@@ -63,7 +63,6 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .welcome-steps li:last-child{ border-bottom:none }
 .welcome-step-letter{ width:26px; height:26px; border-radius:8px; background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:800; display:grid; place-items:center; flex:none }
 .welcome-step-title{ font-size:14.5px; font-weight:650; color:var(--text); flex:1; min-width:0 }
-.welcome-step-n{ font-size:12px; font-weight:650; color:var(--muted); flex:none }
 .welcome-card-foot{ font-size:12.5px; color:var(--muted); margin:14px 0 0; padding-top:14px; border-top:1px solid var(--line); line-height:1.55 }
 
 /* Section screen layout */

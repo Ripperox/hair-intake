@@ -39,12 +39,12 @@ const SECTION_TITLE: Record<string, string> = {
   E: 'Sample & Consent',
 }
 
-const RAIL: { letter: string; title: string; screens: Screen[]; n: number }[] = [
-  { letter: 'A', title: 'Personal & family', screens: ['A'], n: 4 },
-  { letter: 'B', title: 'Hormonal & health', screens: ['B'], n: 5 },
-  { letter: 'C', title: 'Lifestyle', screens: ['C'], n: 2 },
-  { letter: 'D', title: 'Treatments', screens: ['D'], n: 3 },
-  { letter: 'E', title: 'Sample & consent', screens: ['E'], n: 2 },
+const RAIL: { letter: string; title: string; screens: Screen[] }[] = [
+  { letter: 'A', title: 'Personal & family', screens: ['A'] },
+  { letter: 'B', title: 'Hormonal & health', screens: ['B'] },
+  { letter: 'C', title: 'Lifestyle', screens: ['C'] },
+  { letter: 'D', title: 'Treatments', screens: ['D'] },
+  { letter: 'E', title: 'Sample & consent', screens: ['E'] },
 ]
 
 // deep clone initial answers (avoid shared nested refs)
@@ -629,7 +629,6 @@ export default function App() {
                     <li key={g.letter}>
                       <span className="welcome-step-letter">{g.letter}</span>
                       <span className="welcome-step-title">{g.title}</span>
-                      <span className="welcome-step-n">{g.n}</span>
                     </li>
                   ))}
                 </ol>
