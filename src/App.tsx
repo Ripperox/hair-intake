@@ -108,7 +108,11 @@ export default function App() {
 
   // A product marked with side effects *is* an answer to Q14 — the same sentence,
   // already given. Reflect it; never let it survive the answer it came from.
-  const sideEffectRow = PRODUCT_ROW_KEYS.find(k => answers.products[k]?.used && answers.products[k]?.sideEffects === true)
+  const sideEffectRows = PRODUCT_ROW_KEYS.filter(k => answers.products[k]?.used && answers.products[k]?.sideEffects === true)
+  const sideEffectRow = sideEffectRows.length > 0
+  const sideEffectList = sideEffectRows.length < 2
+    ? sideEffectRows.join('')
+    : `${sideEffectRows.slice(0, -1).join(', ')} and ${sideEffectRows[sideEffectRows.length - 1]}`
 
   useEffect(() => {
     if (q14Manual) return
@@ -119,7 +123,8 @@ export default function App() {
       q14Auto.current = false
       setAnswers(prev => ({ ...prev, pastTreatmentSideEffects: null, pastTreatmentDescribe: null }))
     }
-  }, [sideEffectRow, q14Manual])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sideEffectRows.join('|'), q14Manual])
 
   const editProduct = useCallback((row: string, patch: Partial<ProductEntry>) => {
     setAnswers(prev => ({ ...prev, products: { ...prev.products, [row]: { ...prev.products[row], ...patch } } }))
@@ -615,7 +620,7 @@ export default function App() {
               <>
                 {!q14Manual && sideEffectRow && answers.pastTreatmentSideEffects === true && (
                   <p className="infer-note">
-                    You marked side effects with <b>{sideEffectRow}</b>, so this is already answered. Not right? Tap No.
+                    You marked side effects with <b>{sideEffectList}</b>. Want to add a few words about what happened?
                   </p>
                 )}
                 {!q14Manual && q14FromSkip && answers.pastTreatmentSideEffects === false && (
