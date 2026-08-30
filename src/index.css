@@ -191,15 +191,6 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .habit-detail-btn.filled{ border-style:solid; border-color:var(--line); background:var(--bg-soft); color:var(--text-2); font-weight:650 }
 .habit-detail-btn.invalid{ border-style:solid; border-color:var(--danger); background:var(--danger-soft); color:var(--danger) }
 
-/* Consent */
-.consent-card{ display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:14px; border:1.5px solid var(--line); background:var(--card); cursor:pointer }
-.consent-card.invalid{ border-color:var(--danger); box-shadow:0 0 0 3px rgba(180,35,24,.14) }
-.consent-card:has(input:checked){ border-color:var(--accent); background:var(--accent-soft) }
-.consent-card input{ position:absolute; opacity:0; pointer-events:none }
-.consent-check{ width:26px; height:26px; border-radius:8px; border:1.5px solid var(--line-strong); background:white; display:grid; place-items:center; font-weight:800; color:white; flex:none }
-.consent-card:has(input:checked) .consent-check{ background:var(--accent); border-color:var(--accent) }
-.consent-text{ font-size:15px; font-weight:700; color:var(--text) }
-
 /* Hint */
 .hint{ font-size:13px; line-height:1.45; color:var(--muted); margin:10px 0 0 }
 .field-error{ font-size:13px; font-weight:600; color:var(--danger); margin:10px 0 0 }
@@ -404,7 +395,6 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .voice-btn:focus-visible,
 .icon-btn:focus-visible,
 .table-row-label:focus-visible,
-.consent-card:focus-visible,
 .summary-row:focus-visible,
 .rail-item:focus-visible {
   outline: none;

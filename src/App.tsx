@@ -574,14 +574,25 @@ export default function App() {
                 ))}
               </div>
             ))}
-            {renderQuestion('16', 'Consent', 'I agree to sample collection and genetic analysis for my hair-loss profile. You can withdraw anytime.', (
+            {renderQuestion('16', 'Consent', 'Sample collection and genetic analysis for your hair-loss profile. You can withdraw anytime.', (
               <>
-                <label className={`consent-card ${vstate('E', 'consent') === 'invalid' ? 'invalid' : ''}`} data-invalid={vstate('E', 'consent') === 'invalid' || undefined}>
-                  <input type="checkbox" checked={!!answers.consent} onChange={e => update({ consent: e.target.checked })} />
-                  <span className="consent-check" aria-hidden="true">{answers.consent ? '✓' : ''}</span>
-                  <span className="consent-text">Yes, I consent</span>
-                </label>
-                <Hint>No consent, no sample. Your doctor can still see you either way.</Hint>
+                <div className="opt-grid">
+                  <OptionCard
+                    label="Yes, I consent"
+                    subLabel="The clinic can collect a sample"
+                    selected={answers.consent === true}
+                    onSelect={() => update({ consent: true })}
+                    validationState={vstate('E', 'consent')}
+                  />
+                  <OptionCard
+                    label="No, not right now"
+                    subLabel="You can still see the doctor"
+                    selected={answers.consent === false}
+                    onSelect={() => update({ consent: false })}
+                    validationState={vstate('E', 'consent')}
+                  />
+                </div>
+                <Hint>Declining is a real answer — it won't block your consultation.</Hint>
               </>
             ))}
           </SectionCard>
@@ -662,7 +673,7 @@ export default function App() {
               ))}
               <SummaryRow label="Past treatment side effects" value={answers.pastTreatmentSideEffects ? `Yes — ${answers.pastTreatmentDescribe || 'no detail'}` : answers.pastTreatmentSideEffects === false ? 'No' : '—'} onEdit={() => setStep('D')} />
               <SummaryRow label="Sample" value={answers.sampleType || '—'} onEdit={() => setStep('E')} />
-              <SummaryRow label="Consent" value={answers.consent ? 'Yes' : 'No'} onEdit={() => setStep('E')} />
+              <SummaryRow label="Consent" value={answers.consent === null ? '—' : answers.consent ? 'Yes' : 'No'} onEdit={() => setStep('E')} />
             </div>
             {missing.length > 0 && (
               <div className="summary-missing">
