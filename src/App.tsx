@@ -39,12 +39,12 @@ const SECTION_TITLE: Record<string, string> = {
   E: 'Sample & Consent',
 }
 
-const RAIL: { letter: string; title: string; screens: Screen[] }[] = [
-  { letter: 'A', title: 'Personal & family', screens: ['A'] },
-  { letter: 'B', title: 'Hormonal & health', screens: ['B'] },
-  { letter: 'C', title: 'Lifestyle', screens: ['C'] },
-  { letter: 'D', title: 'Treatments', screens: ['D'] },
-  { letter: 'E', title: 'Sample & consent', screens: ['E'] },
+const RAIL: { letter: string; title: string; screens: Screen[]; n: number }[] = [
+  { letter: 'A', title: 'Personal & family', screens: ['A'], n: 4 },
+  { letter: 'B', title: 'Hormonal & health', screens: ['B'], n: 5 },
+  { letter: 'C', title: 'Lifestyle', screens: ['C'], n: 2 },
+  { letter: 'D', title: 'Treatments', screens: ['D'], n: 3 },
+  { letter: 'E', title: 'Sample & consent', screens: ['E'], n: 2 },
 ]
 
 // deep clone initial answers (avoid shared nested refs)
@@ -178,14 +178,26 @@ export default function App() {
   }
   const nudge = (section: string) => {
     setNudged(prev => ({ ...prev, [section]: true }))
+    // Take them to the blank answer rather than making them hunt for it. On
+    // desktop every section is on screen at once, so scope the search.
     setTimeout(() => {
-      document.querySelector('[data-invalid]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const scope = document.getElementById(`desk-${section}`) ?? document
+      const target = scope.querySelector('[data-invalid]')
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }, 80)
   }
 
   const validAge = (): boolean => {
     const n = parseInt(answers.ageHairLossBegan, 10)
     return !!answers.ageHairLossBegan && !isNaN(n) && n >= 10 && n <= 100
+  }
+
+  // How many answers a section is still waiting on. Drives the rail badge and
+  // the "what's left" bar, so an unfinished section is never a silent mystery.
+  const missingCount = (s: Screen): number => {
+    const v = validations[s as string]
+    if (!v) return 0
+    return Object.values(v.fields).filter(f => f.state !== 'valid').length
   }
 
   const sectionComplete = (s: Screen): boolean => {
@@ -589,16 +601,35 @@ export default function App() {
       case 'welcome':
         return (
           <div className="welcome">
-            <div className="welcome-badge">GenoRoot · Hair & Scalp Clinic</div>
-            <h1>Help your doctor<br />understand your hair</h1>
-            <p className="welcome-lead">
-              Five short sections, about three minutes. Your doctor gets the complete picture before you walk in.
-            </p>
-            <div className="welcome-meta">
-              <span>5 sections</span><span className="dot">·</span><span>~3 minutes</span><span className="dot">·</span><span>No login</span><span className="dot">·</span><span>Stays on this device</span>
+            <div className="welcome-main">
+              <div className="welcome-badge">GenoRoot · Hair &amp; Scalp Clinic</div>
+              <h1>Help your doctor<br />understand your hair</h1>
+              <p className="welcome-lead">
+                Five short sections, about three minutes. Mostly tapping. Your doctor gets the whole picture before you walk in.
+              </p>
+              <BigButton onClick={() => setStep('A')}>Start Section A</BigButton>
+              <div className="welcome-meta">
+                <span>16 questions</span><span className="dot">·</span><span>~3 minutes</span><span className="dot">·</span><span>No login</span>
+              </div>
+              <p className="welcome-hinglish">Hinglish is fine · हिंदी-English, jo aapko easy lage</p>
             </div>
-            <BigButton onClick={() => setStep('A')}>Start Section A</BigButton>
-            <p className="welcome-hinglish">Hinglish is fine · हिंदी-English, jo aapko easy lage</p>
+            <aside className="welcome-aside">
+              <div className="welcome-card">
+                <div className="welcome-card-head">What we&apos;ll cover</div>
+                <ol className="welcome-steps">
+                  {RAIL.map(g => (
+                    <li key={g.letter}>
+                      <span className="welcome-step-letter">{g.letter}</span>
+                      <span className="welcome-step-title">{g.title}</span>
+                      <span className="welcome-step-n">{g.n}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="welcome-card-foot">
+                  Your answers stay on this device and are deleted the moment you submit. You can stop and come back.
+                </p>
+              </div>
+            </aside>
           </div>
         )
 
@@ -852,12 +883,16 @@ export default function App() {
           {RAIL.map(g => {
             const s = g.screens[0]
             const complete = sectionComplete(s)
+            const left = missingCount(s)
             const current = step === s
+            const started = essAnswered > 0
             return (
-              <button key={g.letter} type="button" className={`rail-item ${current ? 'current' : ''} ${complete ? 'done' : ''}`} onClick={() => setStep(s)}>
+              <button key={g.letter} type="button" className={`rail-item ${current ? 'current' : ''} ${complete ? 'done' : ''}`} onClick={() => { setStep(s); if (!complete && started) nudge(s as string) }}>
                 <span className="rail-letter">{g.letter}</span>
                 <span className="rail-item-label">{g.title}</span>
-                <span className="rail-check" aria-hidden="true">{complete ? '✓' : ''}</span>
+                {complete
+                  ? <span className="rail-check" aria-hidden="true">✓</span>
+                  : started ? <span className="rail-left">{left} left</span> : null}
               </button>
             )
           })}
@@ -883,12 +918,23 @@ export default function App() {
             ))}
           </div>
 
-          {allDone && step !== 'summary' && (
+          {step !== 'summary' && (allDone ? (
             <div className="desk-actions">
               <span className="desk-actions-note">All 5 sections complete</span>
               <BigButton onClick={() => setStep('summary')}>Review the filled form →</BigButton>
             </div>
-          )}
+          ) : essAnswered > 0 && (() => {
+            const first = SECTIONS.find(s => !sectionComplete(s))!
+            const left = SECTIONS.reduce((n, s) => n + missingCount(s), 0)
+            return (
+              <div className="desk-actions">
+                <span className="desk-actions-note pending">
+                  {left} {left === 1 ? 'answer' : 'answers'} still blank — next one is in {SECTION_TITLE[first as string]}
+                </span>
+                <BigButton variant="secondary" onClick={() => { setStep(first); nudge(first as string) }}>Show me →</BigButton>
+              </div>
+            )
+          })())}
         </main>
 
         <aside className="desk-preview">
@@ -929,7 +975,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${step === 'welcome' ? 'app-welcome' : ''} ${step === 'done' ? 'app-done' : ''}`}>
       {!doneHome && (
         <>
           <ProgressBar progress={progress} />

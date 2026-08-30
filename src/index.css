@@ -47,13 +47,24 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .icon-btn:active{ transform:scale(.97) }
 
 /* Welcome */
-.welcome{ padding:28px 4px 8px; text-align:left }
+.welcome{ padding:28px 4px 8px; text-align:left; display:flex; flex-direction:column; gap:24px }
 .welcome-badge{ display:inline-flex; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent-line); padding:6px 10px; border-radius:999px; margin-bottom:18px }
 .welcome h1{ font-family:var(--font-display); font-size:36px; line-height:1.08; letter-spacing:-.01em; margin:0 0 14px; font-weight:600; color:var(--text) }
 .welcome-lead{ font-size:17px; line-height:1.5; color:var(--text-2); margin:0 0 18px }
-.welcome-meta{ display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); margin-bottom:26px; flex-wrap:wrap }
+.welcome-meta{ display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); margin-top:14px; flex-wrap:wrap }
 .dot{ opacity:.4 }
-.welcome-hinglish{ font-size:13px; color:var(--muted); margin-top:14px }
+.welcome-hinglish{ font-size:13px; color:var(--muted); margin-top:10px }
+
+/* Welcome: "what we'll cover" card — the same five sections the doctor reads */
+.welcome-card{ border:1px solid var(--line); border-radius:var(--r); background:var(--card); padding:18px; box-shadow:var(--shadow-sm) }
+.welcome-card-head{ font-size:11.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px }
+.welcome-steps{ list-style:none; margin:0; padding:0 }
+.welcome-steps li{ display:flex; align-items:center; gap:12px; padding:10px 2px; border-bottom:1px solid var(--line) }
+.welcome-steps li:last-child{ border-bottom:none }
+.welcome-step-letter{ width:26px; height:26px; border-radius:8px; background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:800; display:grid; place-items:center; flex:none }
+.welcome-step-title{ font-size:14.5px; font-weight:650; color:var(--text); flex:1; min-width:0 }
+.welcome-step-n{ font-size:12px; font-weight:650; color:var(--muted); flex:none }
+.welcome-card-foot{ font-size:12.5px; color:var(--muted); margin:14px 0 0; padding-top:14px; border-top:1px solid var(--line); line-height:1.55 }
 
 /* Section screen layout */
 .screen-label{ font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:12px 20px 0 }
@@ -105,6 +116,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .opt-card{ text-align:left; width:100%; padding:14px 16px; border-radius:14px; border:1.5px solid var(--line); background:var(--card); display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; transition: border-color .15s, background .15s, box-shadow .15s }
 .opt-card:hover{ border-color:var(--line-strong); background:var(--bg-soft) }
 .opt-card.selected{ border-color:var(--accent); background:var(--accent-soft); box-shadow: 0 0 0 3px rgba(192,19,43,.10) }
+.opt-text{ min-width:0 }
 .opt-main{ font-size:15.5px; font-weight:650; color:var(--text) }
 .opt-sub{ font-size:12.5px; color:var(--muted); margin-top:2px }
 .opt-check{ width:26px; height:26px; border-radius:999px; background:var(--accent); color:white; display:grid; place-items:center; font-size:14px; font-weight:800; flex:none }
@@ -114,7 +126,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .chip-opt{ appearance:none; border-radius:999px; padding:10px 14px; font-size:14px; font-weight:600; border:1.5px solid var(--line); background:var(--chip-bg); color:var(--text-2); cursor:pointer; display:inline-flex; align-items:center; gap:8px }
 .chip-opt.selected{ background:var(--chip-on-bg); color:var(--chip-on); border-color:var(--accent-line) }
 .chip-opt.exclusive.selected{ background:var(--text); color:white; border-color:var(--text) }
-.chip-check{ font-size:12px; font-weight:800 }
+.chip-check{ font-size:12px; font-weight:800; width:9px; flex:none; text-align:center; line-height:1 }
 
 /* Yes/No */
 .yesno{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
@@ -173,10 +185,11 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 .detail-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px }
 .detail-actions .btn{ margin-top:0 }
 
-/* Follow-up affordance under a habit row (smoking severity, salon detail) */
-.habit-detail-btn{ appearance:none; width:100%; margin-top:10px; padding:10px 12px; border-radius:10px; border:1.5px dashed var(--line-strong); background:var(--bg-soft); color:var(--text-2); font-family:inherit; font-size:13.5px; font-weight:650; text-align:left; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; line-height:1.35 }
-.habit-detail-btn:hover{ border-color:var(--accent); color:var(--accent) }
-.habit-detail-btn.filled{ border-style:solid; border-color:var(--accent-line); background:var(--accent-soft); color:var(--accent) }
+/* Follow-up under a habit row (smoking severity, salon detail).
+   Unanswered it reads as clearly waiting, not as decoration. */
+.habit-detail-btn{ appearance:none; width:100%; margin-top:10px; padding:10px 12px; border-radius:10px; border:1.5px dashed var(--accent); background:var(--accent-soft); color:var(--accent); font-family:inherit; font-size:13.5px; font-weight:700; text-align:left; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; line-height:1.35 }
+.habit-detail-btn:hover{ background:white }
+.habit-detail-btn.filled{ border-style:solid; border-color:var(--line); background:var(--bg-soft); color:var(--text-2); font-weight:650 }
 .habit-detail-btn.invalid{ border-style:solid; border-color:var(--danger); background:var(--danger-soft); color:var(--danger) }
 
 /* Consent */
@@ -301,6 +314,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .rail-item-label{ flex:1; min-width:0 }
   .rail-check{ width:18px; height:18px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:11px; font-weight:800; display:none; place-items:center; flex:none }
   .rail-item.done .rail-check{ display:grid }
+  .rail-left{ font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:999px; padding:2px 7px; flex:none; white-space:nowrap }
   .rail-review{ margin-top:14px; border-color:var(--line); background:var(--card) }
   .rail-review .rail-letter{ background:var(--text); color:white }
   .rail-keys{ font-size:11.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin:auto 6px 0; line-height:1.55 }
@@ -317,6 +331,7 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .desk-actions{ position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 20px; background:linear-gradient(rgba(253,252,250,0), rgba(253,252,250,.97) 45%); z-index:20 }
   .desk-actions .btn{ width:auto; min-width:230px; margin-top:0 }
   .desk-actions-note{ font-size:13px; font-weight:700; color:var(--accent) }
+  .desk-actions-note.pending{ color:var(--text-2) }
 }
 
 /* Right: live "form filling itself" panel — appears once there's room (≥1170) */
@@ -346,6 +361,14 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
   .desk-section .section-card{ columns:2; column-gap:38px }
   .desk-section .section-head{ column-span:all }
   .desk-section .q-block{ break-inside:avoid }
+
+  /* Section C is two questions, one of them tall: columns would strand a
+     dead gutter beside it. Give it the full width instead — the habit
+     groups then sit side by side with room to breathe. */
+  #desk-C .section-card{ columns:auto }
+  #desk-C .habit-groups{ gap:32px }
+  #desk-C .habit-main.col-layout .opt-grid.small{ flex-direction:row }
+  #desk-C .habit-main.col-layout .opt-grid.small .opt-card{ flex:1 }
 }
 
 /* Very large / UHD: let the doc scale up and get a third column */
@@ -358,6 +381,9 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 @media (min-width:2400px){
   .app.is-desktop{ grid-template-columns:300px minmax(0,1fr) 420px }
   .desk-section .section-card{ columns:3; column-gap:42px }
+  /* Sections with fewer blocks than columns would leave an empty gutter */
+  #desk-C .section-card{ columns:auto }
+  #desk-E .section-card{ columns:2 }
 }
 @media print{
   .progress-wrap, .step-header, .footer, .btn, .sheet-backdrop, .welcome-hinglish, .welcome-meta{ display:none !important }
@@ -413,4 +439,31 @@ html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-fa
 /* Desktop rail item focus */
 .rail-item:focus-visible .rail-letter {
   box-shadow: 0 0 0 3px rgba(192, 19, 43, 0.4);
+}
+
+/* ——— Welcome on a laptop: a real hero, not a phone column in a void ——— */
+@media (min-width:1024px){
+  .app.app-welcome{ max-width:none; background:radial-gradient(1100px 520px at 12% -5%, #ffffff 0%, var(--bg) 62%) }
+  .app.app-welcome .main{ padding:0; justify-content:center }
+  .app.app-welcome .welcome{
+    display:grid;
+    grid-template-columns:minmax(0,1.05fr) minmax(0,400px);
+    gap:72px;
+    align-items:center;
+    width:100%;
+    max-width:1120px;
+    margin:0 auto;
+    padding:56px 48px;
+    min-height:100dvh;
+  }
+  .app.app-welcome .welcome-main{ max-width:34ch }
+  .app.app-welcome .welcome h1{ font-size:52px; line-height:1.04 }
+  .app.app-welcome .welcome-lead{ font-size:18.5px; margin-bottom:26px }
+  .app.app-welcome .welcome .btn-big{ width:auto; min-width:290px }
+  .app.app-welcome .welcome-card{ padding:22px }
+  .app.app-done{ max-width:760px }
+}
+@media (min-width:1500px){
+  .app.app-welcome .welcome{ max-width:1240px; gap:96px }
+  .app.app-welcome .welcome h1{ font-size:58px }
 }

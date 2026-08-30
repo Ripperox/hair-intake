@@ -18,7 +18,7 @@ The "how" behind the build, in ~one page. Each decision names the option I had, 
 
 ## 3. Inference → confirmation, never assumption
 
-**Option:** ask every question cold, or quietly guess. **Chose:** one deterministic rule — if hair loss began ≤ 25 and the father had it, pre-mark the two most common patterns, labeled "we pre-marked these — tap to remove."
+**Option:** ask every question cold, or quietly guess. **Chose:** one deterministic rule — the moment age-of-onset ≤ 25 and "father had hair loss" are both in, the two most common patterns pre-mark themselves, with a visible note ("we pre-marked the two most common patterns. Not right? Tap to remove").
 
 - This is the "inferred from an earlier answer and just confirmed" move the brief names. It stays deterministic (no model to second-guess) and is always visible/removable.
 

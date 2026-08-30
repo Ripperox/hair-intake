@@ -84,22 +84,19 @@ export function OptionCard({
       transition={spring}
       style={{ opacity: disabled ? 0.5 : 1 }}
     >
-      <div className="opt-main">{label}</div>
-      {subLabel && <div className="opt-sub">{subLabel}</div>}
-      <AnimatePresence>
-        {selected && (
-          <motion.span
-            className="opt-check"
-            aria-hidden="true"
-            initial={{ scale: 0, rotate: -45 }}
-            animate={{ scale: 1, rotate: 0 }}
-            exit={{ scale: 0, rotate: 45 }}
-            transition={springQuick}
-          >
-            ✓
-          </motion.span>
-        )}
-      </AnimatePresence>
+      <div className="opt-text">
+        <div className="opt-main">{label}</div>
+        {subLabel && <div className="opt-sub">{subLabel}</div>}
+      </div>
+      {/* Always in the layout, only faded — selecting must not resize the card. */}
+      <motion.span
+        className="opt-check"
+        aria-hidden="true"
+        animate={{ opacity: selected ? 1 : 0, scale: selected ? 1 : 0.5 }}
+        transition={springQuick}
+      >
+        ✓
+      </motion.span>
     </motion.button>
   )
 }
@@ -134,20 +131,16 @@ export function ChipOption({
       transition={spring}
     >
       {label}
-      <AnimatePresence>
-        {selected && (
-          <motion.span
-            className="chip-check"
-            aria-hidden="true"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={springQuick}
-          >
-            ✓
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {/* Always rendered, only faded: a chip must not change width when tapped,
+          or the whole group reflows under the user's finger. */}
+      <motion.span
+        className="chip-check"
+        aria-hidden="true"
+        animate={{ opacity: selected ? 1 : 0, scale: selected ? 1 : 0.6 }}
+        transition={springQuick}
+      >
+        ✓
+      </motion.span>
     </motion.button>
   )
 }
