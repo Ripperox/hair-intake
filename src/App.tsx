@@ -73,6 +73,7 @@ export default function App() {
   const [step, setStep] = useState<Screen>('welcome')
   const [showLeaveSheet, setShowLeaveSheet] = useState(false)
   const [editRow, setEditRow] = useState<{ kind: 'product' | 'procedure'; key: string } | null>(null)
+  const [habitModal, setHabitModal] = useState<{ kind: 'smoking' | 'salon' } | null>(null)
   const isDesktop = useIsDesktop()
   const patternSeeded = useRef(false)
   const answersRef = useRef(answers)
@@ -275,7 +276,7 @@ export default function App() {
                   const ageN = parseInt(answers.ageHairLossBegan, 10)
                   const suggested = !isNaN(ageN) && ageN <= 25 && answers.familyHistory.includes('Father had hair loss')
                   return suggested && answers.pattern.length > 0 ? (
-                    <div className="field-ok" style={{ marginBottom: 10, lineHeight: 1.45 }}>
+                    <div className="field-hint" style={{ marginBottom: 10, lineHeight: 1.45 }}>
                       Based on when it started + your father&apos;s hair loss, we pre-marked the two most common patterns. Tap to remove any that don&apos;t match.
                     </div>
                   ) : null
@@ -366,42 +367,57 @@ export default function App() {
                 <Hint>If nothing happened, just move to the next question.</Hint>
               </>
             ))}
-            {renderQuestion('11', 'Daily habits', 'Quick yes / no for each. Details only if needed.', (
-              <div className="habit-list">
-                <div className="habit-group-label">Lifestyle</div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Smoking</span><YesNo value={answers.smoking} onChange={v => update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null })} validationState={validationC.fields.smoking?.state || 'idle'} /></div>
-                  {answers.smoking && (
-                    <div className="habit-followup">
-                      <div className="followup-label">How many per day?</div>
-                      <div className="opt-grid small">
-                        {['Mild <5/day','Moderate 5-10/day','Severe >10/day'].map(opt => (
-                          <OptionCard key={opt} label={opt} selected={answers.smokingSeverity === opt} onSelect={() => update({ smokingSeverity: opt })} />
-                        ))}
+            {renderQuestion('11', 'Daily habits', 'Quick yes / no for each. Details pop up only if needed.', (
+              <div className="habit-groups">
+                <div className="habit-group">
+                  <div className="habit-group-label">Lifestyle</div>
+                  <div className="habit-list">
+                    <div className="habit-row">
+                      <div className="habit-main">
+                        <span className="habit-label">Smoking</span>
+                        <YesNo value={answers.smoking} onChange={v => { update({ smoking: v, smokingSeverity: v ? answers.smokingSeverity : null }); if (v) setHabitModal({ kind: 'smoking' }) }} validationState={validationC.fields.smoking?.state || 'idle'} />
                       </div>
                     </div>
-                  )}
-                </div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Alcohol</span><YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} validationState={validationC.fields.alcohol?.state || 'idle'} /></div></div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Hard water for hair wash</span><YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} validationState={validationC.fields.hardWater?.state || 'idle'} /></div></div>
-                <div className="habit-group-label" style={{ marginTop: 14 }}>Hair care</div>
-                <div className="habit-row">
-                  <div className="habit-main" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                    <span className="habit-label" style={{ marginBottom: 8 }}>Hair wash frequency</span>
-                    <div className="opt-grid small">
-                      {['Daily','Alternate Days','Weekly'].map(opt => (
-                        <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} validationState={validationC.fields.hairWashFrequency?.state || 'idle'} />
-                      ))}
+                    <div className="habit-row">
+                      <div className="habit-main">
+                        <span className="habit-label">Alcohol</span>
+                        <YesNo value={answers.alcohol} onChange={v => update({ alcohol: v })} validationState={validationC.fields.alcohol?.state || 'idle'} />
+                      </div>
+                    </div>
+                    <div className="habit-row">
+                      <div className="habit-main">
+                        <span className="habit-label">Hard water for hair wash</span>
+                        <YesNo value={answers.hardWater} onChange={v => update({ hardWater: v })} validationState={validationC.fields.hardWater?.state || 'idle'} />
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="habit-row"><div className="habit-main"><span className="habit-label">Heating tools / styling chemicals</span><YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} validationState={validationC.fields.heatingTools?.state || 'idle'} /></div></div>
-                <div className="habit-row">
-                  <div className="habit-main"><span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span><YesNo value={answers.salonTreatments} onChange={v => update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null })} validationState={validationC.fields.salonTreatments?.state || 'idle'} /></div>
-                  {answers.salonTreatments && (
-                    <div className="habit-followup">
-                      <VoicedTextArea value={answers.salonTreatmentDetail || ''} onChange={v => update({ salonTreatmentDetail: v })} placeholder="Which ones? e.g. Keratin 2 months ago" rows={2} />
+                <div className="habit-group">
+                  <div className="habit-group-label">Hair care</div>
+                  <div className="habit-list">
+                    <div className="habit-row">
+                      <div className="habit-main col-layout">
+                        <span className="habit-label">Hair wash frequency</span>
+                        <div className="opt-grid small">
+                          {['Daily','Alternate Days','Weekly'].map(opt => (
+                            <OptionCard key={opt} label={opt} selected={answers.hairWashFrequency === opt} onSelect={() => update({ hairWashFrequency: opt })} validationState={validationC.fields.hairWashFrequency?.state || 'idle'} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                    <div className="habit-row">
+                      <div className="habit-main">
+                        <span className="habit-label">Heating tools / styling chemicals</span>
+                        <YesNo value={answers.heatingTools} onChange={v => update({ heatingTools: v })} validationState={validationC.fields.heatingTools?.state || 'idle'} />
+                      </div>
+                    </div>
+                    <div className="habit-row">
+                      <div className="habit-main">
+                        <span className="habit-label">Salon treatments (keratin, rebonding, smoothening)</span>
+                        <YesNo value={answers.salonTreatments} onChange={v => { update({ salonTreatments: v, salonTreatmentDetail: v ? answers.salonTreatmentDetail : null }); if (v) setHabitModal({ kind: 'salon' }) }} validationState={validationC.fields.salonTreatments?.state || 'idle'} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -708,6 +724,37 @@ export default function App() {
     )
   })()
 
+  const habitDetail = habitModal && (() => {
+    const isSmoking = habitModal.kind === 'smoking'
+    return (
+      <div className="detail-backdrop" onClick={() => setHabitModal(null)}>
+        <div className="detail-card" role="dialog" aria-modal="true" aria-label={isSmoking ? 'Smoking details' : 'Salon treatment details'} onClick={e => e.stopPropagation()}>
+          <div className="detail-head">
+            <div>
+              <h3 className="detail-title">{isSmoking ? 'Smoking' : 'Salon treatments'}</h3>
+              <p className="detail-sub">{isSmoking ? 'How many per day — this matters for your hair picture.' : 'Which ones and when — a few words tells your doctor plenty.'}</p>
+            </div>
+            <button type="button" className="icon-btn" onClick={() => setHabitModal(null)} aria-label="Close">✕</button>
+          </div>
+          <div className="detail-body">
+            {isSmoking ? (
+              <div className="opt-grid small">
+                {['Mild <5/day','Moderate 5-10/day','Severe >10/day'].map(opt => (
+                  <OptionCard key={opt} label={opt} selected={answers.smokingSeverity === opt} onSelect={() => update({ smokingSeverity: opt })} />
+                ))}
+              </div>
+            ) : (
+              <VoicedTextArea value={answers.salonTreatmentDetail || ''} onChange={v => update({ salonTreatmentDetail: v })} placeholder="Which ones? e.g. Keratin 2 months ago" rows={2} />
+            )}
+          </div>
+          <div className="detail-actions">
+            <BigButton onClick={() => setHabitModal(null)}>Done</BigButton>
+          </div>
+        </div>
+      </div>
+    )
+  })()
+
   const renderDeskShell = () => {
     const { answered, total } = essentialStats()
     const allDone = SECTIONS.every(s => sectionComplete(s))
@@ -779,6 +826,7 @@ export default function App() {
 
         {sheet}
         {detailModal}
+        {habitDetail}
       </div>
     )
   }
@@ -823,9 +871,9 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
-      {!doneHome && (
+      {step === 'summary' && (
         <footer className="footer">
-          <span>{step === 'summary' ? 'Review' : `Section ${step} of 5`}</span>
+          <span>Review</span>
           <span className="footer-hint">Back to change · saved on this device · DPDP: deleted on submit</span>
         </footer>
       )}
@@ -845,6 +893,7 @@ export default function App() {
       )}
       {sheet}
       {detailModal}
+      {habitDetail}
     </div>
   )
 }

@@ -199,14 +199,14 @@ export function YesNo({
       >
         {noLabel}
       </motion.button>
-      {(isValid || isInvalid) && (
+      {isInvalid && (
         <motion.p
-          className={isValid ? 'field-ok' : 'field-error'}
+          className="field-error"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {isValid ? '✓ Looks good' : 'Please select one'}
+          Please select one
         </motion.p>
       )}
     </div>
@@ -304,11 +304,6 @@ export function NumberStepper({
           transition={{ duration: 0.2 }}
         >
           {validationMessage}
-        </motion.p>
-      )}
-      {isValid && (
-        <motion.p className="field-ok" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={springQuick}>
-          ✓ Looks good
         </motion.p>
       )}
     </div>
